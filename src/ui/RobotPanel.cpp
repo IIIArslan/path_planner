@@ -105,6 +105,10 @@ RobotPanel::RobotPanel(Project* project, FieldScene* scene, QWidget* parent)
     connect(m_scene,    &FieldScene::robotMoved, this, &RobotPanel::onRobotMoved);
 }
 
+void RobotPanel::refreshTheme(bool dark) {
+    setStyleSheet(dark ? "background:#1a1b1e;" : "");
+}
+
 void RobotPanel::setProject(Project* p) {
     m_project = p;
     QSignalBlocker bx(m_xSpin), by(m_ySpin), bh(m_hdgSpin), bw(m_wSpin), bhh(m_hSpin);

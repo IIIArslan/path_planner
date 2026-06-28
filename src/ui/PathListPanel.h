@@ -21,6 +21,8 @@ public:
     // Rebuild the entire list from the current project state.
     void rebuild();
 
+    void refreshTheme(bool dark);
+
     // Highlight the row at idx (−1 clears all highlights).
     void setSelectedRow(int idx);
 

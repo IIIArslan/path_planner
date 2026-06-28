@@ -17,6 +17,7 @@ public:
 
     void setProject(Project* p);
     void refreshPathList();
+    void refreshTheme(bool dark);
 
 private:
     void generate();

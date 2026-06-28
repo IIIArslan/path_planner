@@ -19,6 +19,7 @@
 #include <QVBoxLayout>
 #include <QApplication>
 #include <QPalette>
+#include <QShortcut>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -83,13 +84,17 @@ void MainWindow::buildMenuBar() {
 
     // Field
     auto* field   = menuBar()->addMenu("&Field");
-    auto* loadImg = field->addAction("Load Field Image...");
+    field->addAction("High Stakes — Match",  this, [this]() { m_scene->applyFieldTemplate(1); });
+    field->addAction("High Stakes — Skills", this, [this]() { m_scene->applyFieldTemplate(2); });
+    field->addAction("Clear Field Template", this, [this]() { m_scene->applyFieldTemplate(0); });
+    field->addSeparator();
+    auto* loadImg = field->addAction("Load Custom Field Image...");
     connect(loadImg, &QAction::triggered, this, [this]() {
         QString p = QFileDialog::getOpenFileName(
             this, "Open Field Image", {}, "Images (*.png *.jpg *.jpeg *.bmp)");
         if (!p.isEmpty()) m_scene->loadFieldImage(p);
     });
-    field->addAction("Reset to Default", this, [this]() { m_scene->clearFieldImage(); });
+    field->addAction("Reset Field Image", this, [this]() { m_scene->clearFieldImage(); });
 
     // View
     auto* view       = menuBar()->addMenu("&View");
@@ -115,6 +120,14 @@ void MainWindow::buildLayout() {
     // Push undo snapshot before every user edit
     connect(m_scene, &FieldScene::projectAboutToChange, this, &MainWindow::pushUndoState);
     connect(m_scene, &FieldScene::editModeChanged, this, &MainWindow::onEditModeChanged);
+
+    // Escape always cancels drawing regardless of which widget has focus
+    auto* escShortcut = new QShortcut(Qt::Key_Escape, this);
+    escShortcut->setContext(Qt::ApplicationShortcut);
+    connect(escShortcut, &QShortcut::activated, this, [this]() {
+        if (m_scene->editMode() == FieldScene::EditMode::DrawPath)
+            m_scene->cancelDrawing();
+    });
 
     // Left sidebar
     m_robotPanel    = new RobotPanel(m_project, m_scene, this);
@@ -300,6 +313,11 @@ void MainWindow::applyTheme(bool dark) {
         pal = qApp->style()->standardPalette();
     }
     qApp->setPalette(pal);
+
+    // Update panel backgrounds to match the theme
+    m_robotPanel->refreshTheme(dark);
+    m_pathListPanel->refreshTheme(dark);
+    m_outputPanel->refreshTheme(dark);
 }
 
 // ── slots ──────────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ public:
     explicit RobotPanel(Project* project, FieldScene* scene, QWidget* parent = nullptr);
 
     void setProject(Project* p);
+    void refreshTheme(bool dark);
 
 private:
     void onRobotMoved(double x, double y, double heading);

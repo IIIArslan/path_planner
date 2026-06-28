@@ -129,6 +129,13 @@ PathListPanel::PathListPanel(Project* project, FieldScene* scene, QWidget* paren
 
 // ── public API ─────────────────────────────────────────────────────────────
 
+void PathListPanel::refreshTheme(bool dark) {
+    setStyleSheet(dark ? "background:#1a1b1e;" : "");
+    // Info bar background
+    if (auto* bar = m_infoLabel ? m_infoLabel->parentWidget() : nullptr)
+        bar->setStyleSheet(dark ? "background:#14151a; border-top:1px solid #252630;" : "");
+}
+
 void PathListPanel::rebuild() {
     clearRows();
     for (int i = 0; i < static_cast<int>(m_project->paths.size()); ++i)

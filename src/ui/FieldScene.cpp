@@ -4,6 +4,7 @@
 #include <QBrush>
 #include <QColor>
 #include <QGraphicsSceneMouseEvent>
+#include <algorithm>
 
 // ── construction ───────────────────────────────────────────────────────────
 
@@ -135,6 +136,10 @@ void FieldScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     if (m_editMode == EditMode::DrawPath) {
         if (event->button() == Qt::LeftButton) {
             QPointF fp = sceneToField(event->scenePos());
+            // Clamp to field boundary
+            const double H = Field::HALF_CM;
+            fp.setX(std::clamp(fp.x(), -H, H));
+            fp.setY(std::clamp(fp.y(), -H, H));
             addPointToPath(fp);
             event->accept();
             return;
@@ -320,6 +325,101 @@ void FieldScene::buildBackground() {
         QBrush(QColor(28, 72, 42))
     );
     m_bg->setZValue(-2);
+}
+
+void FieldScene::applyFieldTemplate(int type) {
+    for (auto* item : m_templateItems) { removeItem(item); delete item; }
+    m_templateItems.clear();
+    if (type == 0) return;
+
+    const double H = Field::HALF_CM;   // 182.88 cm
+    const double T = Field::TILE_CM;   // 60.96 cm
+
+    // Helper: semi-transparent filled rect in scene coords
+    auto zone = [&](double sx, double sy, double w, double h, QColor c, double alpha = 0.30) {
+        c.setAlphaF(alpha);
+        auto* r = addRect(sx, sy, w, h, QPen(Qt::NoPen), QBrush(c));
+        r->setZValue(0.5);
+        m_templateItems.append(r);
+    };
+
+    // Helper: stake marker at field (fx, fy)
+    auto stake = [&](double fx, double fy, QColor c) {
+        double sx = fx, sy = -fy;   // Y flip: field→scene
+        auto* e = addEllipse(sx - 7, sy - 7, 14, 14,
+                             QPen(c.darker(150), 2), QBrush(c));
+        e->setZValue(3);
+        m_templateItems.append(e);
+    };
+
+    // Helper: mobile goal at field (fx, fy)
+    auto goal = [&](double fx, double fy) {
+        double sx = fx, sy = -fy;
+        auto* e = addEllipse(sx - 9, sy - 9, 18, 18,
+                             QPen(QColor(180, 140, 20), 2),
+                             QBrush(QColor(230, 185, 30, 200)));
+        e->setZValue(3);
+        m_templateItems.append(e);
+    };
+
+    // ── Alliance zones (scene: red = south = +Y, blue = north = −Y) ─────────
+    // Red alliance bottom 1 tile strip (field y: −H … −H+T → scene y: H−T … H)
+    zone(-H, H - T, Field::SIZE_CM, T, QColor(200, 50, 50));
+    // Blue alliance top 1 tile strip
+    zone(-H, -H,    Field::SIZE_CM, T, QColor(50, 90, 210));
+
+    // ── Positive corners (diagonal: blue bottom-right, red top-left) ────────
+    zone( H - T, H - T, T, T, QColor(50, 90, 210), 0.20);   // blue positive corner
+    zone(-H,    -H,     T, T, QColor(200, 50, 50),  0.20);   // red positive corner
+
+    // ── Autonomous neutral line (center horizontal) ──────────────────────────
+    {
+        QPen lp(QColor(255, 255, 255, 80), 1.5, Qt::DashLine);
+        lp.setCosmetic(true);
+        auto* l = addLine(-H, 0, H, 0, lp);
+        l->setZValue(2);
+        m_templateItems.append(l);
+    }
+
+    // ── Stakes: 4 corners + 2 side walls + 2 end walls ──────────────────────
+    const QColor stakeCol(220, 220, 220);
+    stake(-H + 8,  H - 8, stakeCol);  stake( H - 8,  H - 8, stakeCol);
+    stake(-H + 8, -H + 8, stakeCol);  stake( H - 8, -H + 8, stakeCol);
+    stake(-H + 8,  0,     stakeCol);  stake( H - 8,  0,     stakeCol);
+    stake( 0,      H - 8, stakeCol);  stake( 0,     -H + 8, stakeCol);
+
+    // ── Mobile goals ─────────────────────────────────────────────────────────
+    // 2 on each alliance's side + 1 neutral in center
+    goal(-T,  -H + T * 1.5);  goal( T,  -H + T * 1.5);  // blue side goals
+    goal(-T,   H - T * 1.5);  goal( T,   H - T * 1.5);  // red side goals
+    goal( 0,   0);                                         // center neutral
+
+    // ── Central ladder structure ─────────────────────────────────────────────
+    {
+        double ls = T * 0.65;
+        auto* ladder = addRect(-ls / 2, -ls / 2, ls, ls,
+                               QPen(QColor(160, 120, 50), 2.5),
+                               QBrush(QColor(140, 105, 40, 55)));
+        ladder->setZValue(2);
+        m_templateItems.append(ladder);
+        // Cross bars
+        QPen cp(QColor(160, 120, 50), 1.5);
+        auto* h1 = addLine(-ls / 2, 0, ls / 2, 0, cp);
+        auto* v1 = addLine(0, -ls / 2, 0, ls / 2, cp);
+        h1->setZValue(2); v1->setZValue(2);
+        m_templateItems.append(h1); m_templateItems.append(v1);
+    }
+
+    // ── Skills: show single robot start zone (top-left tile, red start) ──────
+    if (type == 2) {
+        zone(-H, H - T, T, T, QColor(255, 255, 255), 0.25);  // skills start tile
+        QPen sp(QColor(255, 255, 255, 180), 1.5);
+        auto* sl = addText("START");
+        sl->setDefaultTextColor(QColor(255, 255, 255, 200));
+        sl->setPos(-H + 4, H - T + 4);
+        sl->setZValue(4);
+        m_templateItems.append(sl);
+    }
 }
 
 void FieldScene::buildGrid() {

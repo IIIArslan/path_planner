@@ -39,6 +39,9 @@ public:
     void refreshPathItem(int idx);   // repaint after colour/visibility change
     void selectPathAt(int idx);      // select by index (−1 = deselect all)
 
+    // Field template overlay (0=none, 1=HighStakesMatch, 2=HighStakesSkills)
+    void applyFieldTemplate(int type);
+
     EditMode editMode()       const { return m_editMode;    }
     int      selectedPathIdx() const { return m_selectedIdx; }
 
@@ -84,4 +87,7 @@ private:
 
     // Dashed preview line from last anchor to cursor
     QGraphicsLineItem* m_previewLine = nullptr;
+
+    // Field template overlay items
+    QList<QGraphicsItem*> m_templateItems;
 };

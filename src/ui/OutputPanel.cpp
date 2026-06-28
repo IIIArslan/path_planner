@@ -144,6 +144,12 @@ OutputPanel::OutputPanel(Project* project, FieldScene* scene, QWidget* parent)
 
 // ── public ─────────────────────────────────────────────────────────────────
 
+void OutputPanel::refreshTheme(bool dark) {
+    setStyleSheet(dark
+        ? "background:#18191c; border-top:1px solid #2a2b30;"
+        : "");
+}
+
 void OutputPanel::setProject(Project* p) {
     m_project = p;
     QSignalBlocker b(m_stepSpin);
