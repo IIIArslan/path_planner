@@ -1,0 +1,32 @@
+#include "ControlPointItem.h"
+#include <QPen>
+#include <QBrush>
+
+ControlPointItem::ControlPointItem(Role role, QGraphicsItem* parent)
+    : QObject(nullptr)
+    , QGraphicsEllipseItem(parent)
+    , m_role(role)
+{
+    setFlag(ItemIsMovable);
+    setFlag(ItemSendsGeometryChanges);
+    setFlag(ItemIgnoresTransformations); // always drawn at fixed screen size
+    setCursor(Qt::SizeAllCursor);
+
+    if (role == Role::Anchor) {
+        setRect(-6.0, -6.0, 12.0, 12.0);
+        setBrush(Qt::white);
+        setPen(QPen(QColor(55, 55, 60), 1.5));
+    } else {
+        setRect(-4.5, -4.5, 9.0, 9.0);
+        setBrush(QColor(66, 133, 244));
+        setPen(QPen(QColor(30, 90, 200), 1.2));
+    }
+
+    setZValue(20);
+}
+
+QVariant ControlPointItem::itemChange(GraphicsItemChange change, const QVariant& value) {
+    if (change == ItemPositionHasChanged)
+        emit positionChanged(value.toPointF());
+    return QGraphicsEllipseItem::itemChange(change, value);
+}

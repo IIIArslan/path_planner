@@ -39,12 +39,24 @@ set(UI_HEADERS
     src/ui/FieldView.h
 )
 
+set(GRAPHICS_SOURCES
+    src/graphics/ControlPointItem.cpp
+    src/graphics/BezierPathItem.cpp
+)
+
+set(GRAPHICS_HEADERS
+    src/graphics/ControlPointItem.h
+    src/graphics/BezierPathItem.h
+)
+
 qt_add_executable(PathPlanner
     src/main.cpp
     ${CORE_SOURCES}
     ${CORE_HEADERS}
     ${UI_SOURCES}
     ${UI_HEADERS}
+    ${GRAPHICS_SOURCES}
+    ${GRAPHICS_HEADERS}
 )
 
 target_include_directories(PathPlanner PRIVATE src)

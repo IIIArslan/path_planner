@@ -3,6 +3,9 @@
 #include <QPen>
 #include <QBrush>
 #include <QColor>
+#include <QGraphicsSceneMouseEvent>
+
+// ── construction ───────────────────────────────────────────────────────────
 
 FieldScene::FieldScene(QObject* parent)
     : QGraphicsScene(parent)
@@ -10,10 +13,28 @@ FieldScene::FieldScene(QObject* parent)
     setSceneRect(-Field::HALF_CM, -Field::HALF_CM, Field::SIZE_CM, Field::SIZE_CM);
     buildBackground();
     buildGrid();
+
+    // Preview line (dashed, cosmetic)
+    QPen previewPen(QColor(200, 200, 200, 100), 1.0, Qt::DashLine);
+    previewPen.setCosmetic(true);
+    m_previewLine = addLine(QLineF(), previewPen);
+    m_previewLine->setZValue(15);
+    m_previewLine->setVisible(false);
 }
 
+// ── public API ─────────────────────────────────────────────────────────────
+
 void FieldScene::setProject(Project* project) {
+    // Clear existing path items
+    for (auto* item : m_pathItems) delete item;
+    m_pathItems.clear();
+
     m_project = project;
+    if (!m_project) return;
+
+    // Rebuild items for any pre-existing paths
+    for (auto& path : m_project->paths)
+        m_pathItems.append(createPathItem(&path));
 }
 
 void FieldScene::loadFieldImage(const QString& path) {
@@ -27,7 +48,6 @@ void FieldScene::loadFieldImage(const QString& path) {
         m_img->setPixmap(px);
     }
 
-    // Scale image to fill the field area exactly
     double sx = Field::SIZE_CM / px.width();
     double sy = Field::SIZE_CM / px.height();
     m_img->setPos(-Field::HALF_CM, -Field::HALF_CM);
@@ -37,16 +57,186 @@ void FieldScene::loadFieldImage(const QString& path) {
 }
 
 void FieldScene::clearFieldImage() {
-    if (m_img) {
-        removeItem(m_img);
-        delete m_img;
-        m_img = nullptr;
+    if (m_img) { removeItem(m_img); delete m_img; m_img = nullptr; }
+    if (m_bg)  m_bg->setVisible(true);
+}
+
+void FieldScene::startNewPath() {
+    if (!m_project) return;
+
+    // Finish any ongoing drawing first
+    if (m_editMode == EditMode::DrawPath)
+        finishDrawing();
+
+    // Create new path in the model and a corresponding item
+    Path& newPath    = m_project->addPath();
+    auto* item       = createPathItem(&newPath);
+    m_drawPathIdx    = static_cast<int>(m_pathItems.size()) - 1;
+    m_hasFirstPoint  = false;
+    m_editMode       = EditMode::DrawPath;
+
+    selectPath(item);
+    emit editModeChanged(m_editMode);
+    emit pathCountChanged(static_cast<int>(m_project->paths.size()));
+}
+
+void FieldScene::finishDrawing() {
+    if (m_editMode != EditMode::DrawPath) return;
+
+    // If only one point was placed (no segment), remove the empty path
+    if (m_drawPathIdx >= 0 && m_drawPathIdx < static_cast<int>(m_project->paths.size())) {
+        if (m_project->paths[m_drawPathIdx].isEmpty()) {
+            m_project->removePath(m_drawPathIdx);
+            delete m_pathItems.takeAt(m_drawPathIdx);
+            emit pathCountChanged(static_cast<int>(m_project->paths.size()));
+        }
     }
-    if (m_bg) m_bg->setVisible(true);
+
+    m_drawPathIdx   = -1;
+    m_hasFirstPoint = false;
+    m_previewLine->setVisible(false);
+    m_editMode = EditMode::Select;
+    emit editModeChanged(m_editMode);
+}
+
+void FieldScene::cancelDrawing() {
+    finishDrawing(); // finishDrawing already handles the empty-path removal
+}
+
+// ── mouse events ───────────────────────────────────────────────────────────
+
+void FieldScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
+    if (m_editMode == EditMode::DrawPath) {
+        if (event->button() == Qt::LeftButton) {
+            QPointF fp = sceneToField(event->scenePos());
+            addPointToPath(fp);
+            event->accept();
+            return;
+        }
+        if (event->button() == Qt::RightButton) {
+            finishDrawing();
+            event->accept();
+            return;
+        }
+    }
+
+    // Select mode: let items handle the event, then sync selection state
+    QGraphicsScene::mousePressEvent(event);
+
+    if (m_editMode == EditMode::Select && event->button() == Qt::LeftButton) {
+        // Check whether any BezierPathItem (or its children) was under the cursor
+        bool hitPath = false;
+        for (auto* raw : items(event->scenePos())) {
+            QGraphicsItem* it = raw;
+            while (it) {
+                if (dynamic_cast<BezierPathItem*>(it)) { hitPath = true; break; }
+                it = it->parentItem();
+            }
+            if (hitPath) break;
+        }
+        if (!hitPath)
+            selectPath(nullptr); // click on empty field → deselect all
+    }
+}
+
+void FieldScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
+    if (m_editMode == EditMode::DrawPath && m_previewLine) {
+        QPointF from;
+        bool showPreview = false;
+
+        if (m_hasFirstPoint) {
+            from = fieldToScene(QPointF(m_firstPoint.x, m_firstPoint.y));
+            showPreview = true;
+        } else if (m_drawPathIdx >= 0 &&
+                   m_drawPathIdx < static_cast<int>(m_project->paths.size())) {
+            const Path& path = m_project->paths[m_drawPathIdx];
+            if (!path.isEmpty()) {
+                Vec2 ep = path.endPoint();
+                from = fieldToScene(QPointF(ep.x, ep.y));
+                showPreview = true;
+            }
+        }
+
+        if (showPreview) {
+            m_previewLine->setLine(QLineF(from, event->scenePos()));
+            m_previewLine->setVisible(true);
+        } else {
+            m_previewLine->setVisible(false);
+        }
+    }
+
+    QGraphicsScene::mouseMoveEvent(event);
+}
+
+void FieldScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) {
+    if (m_editMode == EditMode::DrawPath) {
+        // The first click of a double-click already placed a point via mousePressEvent;
+        // finish drawing on the second click without adding another point.
+        finishDrawing();
+        event->accept();
+        return;
+    }
+    QGraphicsScene::mouseDoubleClickEvent(event);
+}
+
+// ── private helpers ────────────────────────────────────────────────────────
+
+void FieldScene::addPointToPath(QPointF fieldPos) {
+    if (m_drawPathIdx < 0 || !m_project) return;
+
+    Vec2 newPt = {fieldPos.x(), fieldPos.y()};
+
+    if (!m_hasFirstPoint) {
+        // Store the first anchor; no segment yet
+        m_firstPoint    = newPt;
+        m_hasFirstPoint = true;
+        return;
+    }
+
+    // Create a new segment from the previous anchor to newPt
+    Vec2 p0, p3;
+    Path& path = m_project->paths[m_drawPathIdx];
+
+    if (path.isEmpty()) {
+        p0 = m_firstPoint;
+    } else {
+        p0 = path.endPoint();
+    }
+    p3 = newPt;
+
+    // Default handles at 1/3 and 2/3 along the chord (straight-line start)
+    Vec2 p1 = p0 + (p3 - p0) * (1.0 / 3.0);
+    Vec2 p2 = p0 + (p3 - p0) * (2.0 / 3.0);
+
+    path.segments.emplace_back(p0, p1, p2, p3);
+    m_project->markModified();
+
+    m_pathItems[m_drawPathIdx]->refreshFromModel();
+
+    // The "first point" is now part of the path; subsequent clicks extend it
+    m_hasFirstPoint = false;
+    m_firstPoint    = {};
+}
+
+BezierPathItem* FieldScene::createPathItem(Path* path) {
+    auto* item = new BezierPathItem(path);
+    addItem(item);
+    m_pathItems.append(item);
+
+    connect(item, &BezierPathItem::pathClicked, this, [this](BezierPathItem* clicked) {
+        if (m_editMode == EditMode::Select)
+            selectPath(clicked);
+    });
+
+    return item;
+}
+
+void FieldScene::selectPath(BezierPathItem* selected) {
+    for (auto* item : m_pathItems)
+        item->setEditSelected(item == selected);
 }
 
 void FieldScene::buildBackground() {
-    // Dark green carpet — replaced by image when one is loaded
     m_bg = addRect(
         -Field::HALF_CM, -Field::HALF_CM, Field::SIZE_CM, Field::SIZE_CM,
         QPen(Qt::NoPen),
@@ -59,13 +249,11 @@ void FieldScene::buildGrid() {
     for (auto* item : m_grid) { removeItem(item); delete item; }
     m_grid.clear();
 
-    // Interior dividers: cosmetic dotted white, semi-transparent
     QPen dotPen(QColor(255, 255, 255, 80));
     dotPen.setWidthF(1.0);
     dotPen.setCosmetic(true);
     dotPen.setStyle(Qt::DotLine);
 
-    // Field border: solid, fully opaque
     QPen edgePen(QColor(255, 255, 255, 210));
     edgePen.setWidthF(2.0);
     edgePen.setCosmetic(true);
