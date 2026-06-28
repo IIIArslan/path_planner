@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QFrame>
 #include <QList>
+#include <QLabel>
 #include "core/Project.h"
 #include "ui/FieldScene.h"
 
