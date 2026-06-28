@@ -33,6 +33,7 @@ public:
 
 signals:
     void pathClicked(BezierPathItem* self);
+    void aboutToEdit();  // fires when any control point starts being dragged
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;

@@ -14,8 +14,10 @@ public:
 
 signals:
     void positionChanged(QPointF newScenePos);
+    void dragStarted();
 
 protected:
+    void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
     QVariant itemChange(GraphicsItemChange change, const QVariant& value) override;
 
 private:

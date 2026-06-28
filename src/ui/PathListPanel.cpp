@@ -157,6 +157,7 @@ void PathListPanel::addRow(int pathIdx) {
     colorBtn->setStyleSheet(colorDotStyle(c.r, c.g, c.b));
     colorBtn->setFixedSize(14, 14);
     connect(colorBtn, &QPushButton::clicked, this, [this, pathIdx, colorBtn]() {
+        m_scene->beginEdit();
         openColorPicker(pathIdx);
         // Refresh dot colour after picker closes
         const auto& nc = m_project->paths[pathIdx].color;
@@ -169,8 +170,10 @@ void PathListPanel::addRow(int pathIdx) {
     nameEdit->setStyleSheet(NAME_EDIT_STYLE);
     nameEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     connect(nameEdit, &QLineEdit::editingFinished, this, [this, pathIdx, nameEdit]() {
-        if (pathIdx < static_cast<int>(m_project->paths.size()))
+        if (pathIdx < static_cast<int>(m_project->paths.size())) {
+            m_scene->beginEdit();
             m_project->paths[pathIdx].name = nameEdit->text().toStdString();
+        }
     });
     // Selecting the path when name field is clicked
     connect(nameEdit, &QLineEdit::selectionChanged, this, [this, pathIdx]() {
@@ -185,6 +188,7 @@ void PathListPanel::addRow(int pathIdx) {
     eyeBtn->setToolTip("Toggle visibility");
     connect(eyeBtn, &QPushButton::clicked, this, [this, pathIdx, eyeBtn]() {
         if (pathIdx >= static_cast<int>(m_project->paths.size())) return;
+        m_scene->beginEdit();
         Path& p  = m_project->paths[pathIdx];
         p.visible = !p.visible;
         eyeBtn->setText(p.visible ? "◉" : "◎");

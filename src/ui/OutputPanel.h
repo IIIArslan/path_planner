@@ -14,7 +14,7 @@ class OutputPanel : public QWidget {
 public:
     explicit OutputPanel(Project* project, FieldScene* scene, QWidget* parent = nullptr);
 
-    // Repopulate the path combo from the current project state.
+    void setProject(Project* p);
     void refreshPathList();
 
 private:

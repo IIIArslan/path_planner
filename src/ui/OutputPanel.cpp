@@ -141,6 +141,13 @@ OutputPanel::OutputPanel(Project* project, FieldScene* scene, QWidget* parent)
 
 // ── public ─────────────────────────────────────────────────────────────────
 
+void OutputPanel::setProject(Project* p) {
+    m_project = p;
+    QSignalBlocker b(m_stepSpin);
+    m_stepSpin->setValue(p->stepSizeCm);
+    refreshPathList();
+}
+
 void OutputPanel::refreshPathList() {
     m_pathCombo->blockSignals(true);
     m_pathCombo->clear();

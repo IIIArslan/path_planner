@@ -83,6 +83,10 @@ void FieldScene::applyRobotConfig(const RobotConfig& cfg) {
     if (m_robotItem) m_robotItem->applyConfig(cfg);
 }
 
+void FieldScene::beginEdit() {
+    emit projectAboutToChange();
+}
+
 void FieldScene::startNewPath() {
     if (!m_project) return;
 
@@ -230,6 +234,7 @@ void FieldScene::addPointToPath(QPointF fieldPos) {
     Vec2 p1 = p0 + (p3 - p0) * (1.0 / 3.0);
     Vec2 p2 = p0 + (p3 - p0) * (2.0 / 3.0);
 
+    emit projectAboutToChange();   // snapshot before adding the new segment
     path.segments.emplace_back(p0, p1, p2, p3);
     m_project->markModified();
 
@@ -242,6 +247,7 @@ void FieldScene::addPointToPath(QPointF fieldPos) {
 
 void FieldScene::removePath(int idx) {
     if (!m_project || idx < 0 || idx >= static_cast<int>(m_pathItems.size())) return;
+    emit projectAboutToChange();   // snapshot before delete
     m_project->removePath(idx);
     delete m_pathItems.takeAt(idx);
     if (m_selectedIdx == idx)       m_selectedIdx = -1;
@@ -271,6 +277,7 @@ BezierPathItem* FieldScene::createPathItem(Path* path) {
         if (m_editMode == EditMode::Select)
             selectPath(clicked);
     });
+    connect(item, &BezierPathItem::aboutToEdit, this, [this]{ emit projectAboutToChange(); });
 
     return item;
 }

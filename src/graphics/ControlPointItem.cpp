@@ -1,6 +1,7 @@
 #include "ControlPointItem.h"
 #include <QPen>
 #include <QBrush>
+#include <QGraphicsSceneMouseEvent>
 
 ControlPointItem::ControlPointItem(Role role, QGraphicsItem* parent)
     : QObject(nullptr)
@@ -23,6 +24,11 @@ ControlPointItem::ControlPointItem(Role role, QGraphicsItem* parent)
     }
 
     setZValue(20);
+}
+
+void ControlPointItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
+    emit dragStarted();
+    QGraphicsEllipseItem::mousePressEvent(event);
 }
 
 QVariant ControlPointItem::itemChange(GraphicsItemChange change, const QVariant& value) {

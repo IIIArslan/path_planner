@@ -47,10 +47,12 @@ set(UI_HEADERS
 
 set(IO_SOURCES
     src/io/PythonExporter.cpp
+    src/io/ProjectSerializer.cpp
 )
 
 set(IO_HEADERS
     src/io/PythonExporter.h
+    src/io/ProjectSerializer.h
 )
 
 set(GRAPHICS_SOURCES

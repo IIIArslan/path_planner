@@ -21,6 +21,9 @@ public:
     void setRobotVisible(bool v);
     void applyRobotConfig(const RobotConfig& cfg);
 
+    // Call before any user-initiated edit to allow MainWindow to push an undo snapshot.
+    void beginEdit();
+
     // Start drawing a new path (switches to DrawPath mode).
     void startNewPath();
     // Finish the current drawing session and return to Select mode.
@@ -45,6 +48,7 @@ signals:
     void pathCountChanged(int count);
     void pathSelectionChanged(int idx);
     void robotMoved(double x, double y, double headingDeg);
+    void projectAboutToChange();  // emitted just before a user edit modifies the project
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;

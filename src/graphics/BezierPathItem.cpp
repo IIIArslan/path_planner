@@ -92,6 +92,7 @@ void BezierPathItem::buildItems() {
         int idx = i;
         connect(a, &ControlPointItem::positionChanged, this,
             [this, idx](QPointF sp) { onAnchorMoved(idx, sp); });
+        connect(a, &ControlPointItem::dragStarted, this, [this]{ emit aboutToEdit(); });
         m_anchors.append(a);
     }
 
@@ -105,12 +106,14 @@ void BezierPathItem::buildItems() {
         int si = i;
         connect(h1, &ControlPointItem::positionChanged, this,
             [this, si](QPointF sp) { onHandleMoved(si, true, sp); });
+        connect(h1, &ControlPointItem::dragStarted, this, [this]{ emit aboutToEdit(); });
 
         auto* h2 = new ControlPointItem(ControlPointItem::Role::Handle, this);
         h2->setPos(fs(seg.p2));
         h2->setVisible(m_editSelected);
         connect(h2, &ControlPointItem::positionChanged, this,
             [this, si](QPointF sp) { onHandleMoved(si, false, sp); });
+        connect(h2, &ControlPointItem::dragStarted, this, [this]{ emit aboutToEdit(); });
 
         m_segHandles.append({h1, h2});
     }
