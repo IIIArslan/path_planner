@@ -77,6 +77,7 @@ qt_add_executable(PathPlanner
     ${GRAPHICS_HEADERS}
     ${IO_SOURCES}
     ${IO_HEADERS}
+    resources/resources.qrc
 )
 
 target_include_directories(PathPlanner PRIVATE src)

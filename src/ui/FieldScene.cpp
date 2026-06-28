@@ -3,6 +3,7 @@
 #include <QPen>
 #include <QBrush>
 #include <QColor>
+#include <QPixmap>
 #include <QGraphicsSceneMouseEvent>
 #include <algorithm>
 
@@ -330,6 +331,7 @@ void FieldScene::buildBackground() {
 void FieldScene::applyFieldTemplate(int type) {
     for (auto* item : m_templateItems) { removeItem(item); delete item; }
     m_templateItems.clear();
+    if (m_bg) m_bg->setVisible(true);  // restore default bg whenever template changes
     if (type == 0) return;
 
     const double H = Field::HALF_CM;   // 182.88 cm
@@ -355,65 +357,77 @@ void FieldScene::applyFieldTemplate(int type) {
     // ── VEX Override (2026-27) ───────────────────────────────────────────────
     // After 90°-CW display rotation: Blue=+X (right wall), Red=−X (left wall), Neutral=±Y
     if (type >= 3) {
-        // Light mat background on top of the dark default
-        {
+        // ── Field image (embedded resource) ─────────────────────────────────
+        QPixmap rawPx(":/fields/override_field.png");
+        bool hasImage = !rawPx.isNull();
+        if (hasImage) {
+            // Rotate 90° CW so Blue=+X (right), Red=−X (left), Neutral=±Y
+            QPixmap px = rawPx.transformed(QTransform().rotate(90), Qt::SmoothTransformation);
+            auto* imgItem = addPixmap(px);
+            double sx = Field::SIZE_CM / static_cast<double>(px.width());
+            double sy = Field::SIZE_CM / static_cast<double>(px.height());
+            imgItem->setPos(-H, -H);
+            imgItem->setTransform(QTransform::fromScale(sx, sy));
+            imgItem->setZValue(-1.5);
+            m_templateItems.append(imgItem);
+            if (m_bg) m_bg->setVisible(false);
+        }
+
+        // ── Drawn elements (only when no photo is available) ─────────────────
+        if (!hasImage) {
+            // Light mat background
             auto* mat = addRect(-H, -H, Field::SIZE_CM, Field::SIZE_CM,
                                 QPen(Qt::NoPen), QBrush(QColor(215, 210, 200)));
             mat->setZValue(-1.5);
             m_templateItems.append(mat);
+            // Diagonal X lines corner-to-corner (field: SW↔NE and NW↔SE)
+            {
+                QPen xp(QColor(160, 158, 152, 230), 14.0);
+                auto* l1 = addLine(-H,  H,  H, -H, xp);
+                auto* l2 = addLine(-H, -H,  H,  H, xp);
+                l1->setZValue(0.2);  l2->setZValue(0.2);
+                m_templateItems << l1 << l2;
+            }
+            // Alliance corner zones (1×1 tile, 2 per alliance)
+            zone(H - T,    -H, T, T, QColor(50,  90, 210), 0.55);
+            zone(H - T,  H-T,  T, T, QColor(50,  90, 210), 0.55);
+            zone(-H,      -H,  T, T, QColor(200,  50,  50), 0.55);
+            zone(-H,     H-T,  T, T, QColor(200,  50,  50), 0.55);
+            // Match-load zones (yellow bar, 1T×2T, centred on alliance walls)
+            zone(H - T,  -T, T, T * 2, QColor(240, 200, 0), 0.40);
+            zone(-H,     -T, T, T * 2, QColor(240, 200, 0), 0.40);
+            // Neutral-wall accent strips
+            zone(-H, -H,            Field::SIZE_CM, T * 0.5, QColor(200, 200, 200), 0.22);
+            zone(-H,  H - T * 0.5,  Field::SIZE_CM, T * 0.5, QColor(200, 200, 200), 0.22);
+            // Stakes
+            dot(0, 0, 18, QColor(150, 150, 150, 220), QColor(80, 80, 80));
+            dot(0,  H - T * 0.5, 12, QColor(180, 180, 180, 220), QColor(110, 110, 110));
+            dot(0, -(H - T * 0.5), 12, QColor(180, 180, 180, 220), QColor(110, 110, 110));
+            dot( H - T * 0.5, 0, 12, QColor(50,  90, 210, 220), QColor(30,  60, 170));
+            dot(-H + T * 0.5, 0, 12, QColor(200,  50,  50, 220), QColor(150,  30,  30));
+            // Rings (180°-symmetric)
+            auto gameRing = [&](double fx, double fy) {
+                dot( fx,  fy, 8, QColor(240, 200, 0, 200), QColor(190, 150, 0));
+                dot(-fx, -fy, 8, QColor(240, 200, 0, 200), QColor(190, 150, 0));
+            };
+            gameRing(T * 1.5, 0);  gameRing(0, T * 1.5);
+            gameRing(T, T);        gameRing(T * 2, T);  gameRing(T, T * 2);
+            // Mobile goal markers
+            auto mgoal = [&](double fx, double fy, double sz) {
+                double sx2 = fx - sz / 2, sy2 = -fy - sz / 2;
+                auto* r = addRect(sx2, sy2, sz, sz,
+                                  QPen(QColor(40, 40, 40), 1.5), QBrush(QColor(60, 60, 60, 210)));
+                r->setZValue(3);
+                m_templateItems.append(r);
+            };
+            mgoal( T * 2.0, 0, 14);  mgoal(-T * 2.0, 0, 14);
+            mgoal(0, T * 2.0, 14);   mgoal(0, -T * 2.0, 14);
         }
-        // Diagonal X lines corner-to-corner (field: SW↔NE and NW↔SE)
-        {
-            QPen xp(QColor(160, 158, 152, 230), 14.0);
-            auto* l1 = addLine(-H,  H,  H, -H, xp);   // scene: BL→TR
-            auto* l2 = addLine(-H, -H,  H,  H, xp);   // scene: TL→BR
-            l1->setZValue(0.2);  l2->setZValue(0.2);
-            m_templateItems << l1 << l2;
-        }
-        // Alliance corner zones (1×1 tile, 2 per alliance)
-        zone(H - T,    -H, T, T, QColor(50,  90, 210), 0.55);   // Blue: top-right
-        zone(H - T,  H-T,  T, T, QColor(50,  90, 210), 0.55);   // Blue: bottom-right
-        zone(-H,      -H,  T, T, QColor(200,  50,  50), 0.55);   // Red:  top-left
-        zone(-H,     H-T,  T, T, QColor(200,  50,  50), 0.55);   // Red:  bottom-left
-        // Match-load zones (yellow bar, 1T wide × 2T tall, centred on alliance walls)
-        zone(H - T,  -T, T, T * 2, QColor(240, 200, 0), 0.40);
-        zone(-H,     -T, T, T * 2, QColor(240, 200, 0), 0.40);
-        // Neutral-wall accent strips (±Y walls, 0.5T deep)
-        zone(-H, -H,            Field::SIZE_CM, T * 0.5, QColor(200, 200, 200), 0.22);
-        zone(-H,  H - T * 0.5,  Field::SIZE_CM, T * 0.5, QColor(200, 200, 200), 0.22);
-        // Center high stake
-        dot(0, 0, 18, QColor(150, 150, 150, 220), QColor(80, 80, 80));
-        // Neutral-wall stakes (midpoints of ±Y walls, 0.5T inset)
-        dot(0,  H - T * 0.5, 12, QColor(180, 180, 180, 220), QColor(110, 110, 110));
-        dot(0, -(H - T * 0.5), 12, QColor(180, 180, 180, 220), QColor(110, 110, 110));
-        // Alliance wall stakes (midpoints of ±X walls, 0.5T inset)
-        dot( H - T * 0.5, 0, 12, QColor(50,  90, 210, 220), QColor(30,  60, 170));
-        dot(-H + T * 0.5, 0, 12, QColor(200,  50,  50, 220), QColor(150,  30,  30));
-        // Rings (yellow, 10 rings in 180°-symmetric layout)
-        auto gameRing = [&](double fx, double fy) {
-            dot( fx,  fy, 8, QColor(240, 200, 0, 200), QColor(190, 150, 0));
-            dot(-fx, -fy, 8, QColor(240, 200, 0, 200), QColor(190, 150, 0));
-        };
-        gameRing(T * 1.5,   0);
-        gameRing(0,       T * 1.5);
-        gameRing(T,       T);
-        gameRing(T * 2,   T);
-        gameRing(T,       T * 2);
-        // Mobile goal markers (dark squares, 4-way symmetric at 2T from centre)
-        auto mgoal = [&](double fx, double fy, double sz) {
-            double sx = fx - sz / 2, sy = -fy - sz / 2;
-            auto* r = addRect(sx, sy, sz, sz,
-                              QPen(QColor(40, 40, 40), 1.5), QBrush(QColor(60, 60, 60, 210)));
-            r->setZValue(3);
-            m_templateItems.append(r);
-        };
-        mgoal( T * 2.0,  0,       14);
-        mgoal(-T * 2.0,  0,       14);
-        mgoal(0,          T * 2.0, 14);
-        mgoal(0,         -T * 2.0, 14);
+
+        // ── Always-on overlays ───────────────────────────────────────────────
         // Autonomous line (dashed vertical at x=0)
         {
-            QPen lp(QColor(255, 255, 255, 80), 1.5, Qt::DashLine);
+            QPen lp(QColor(255, 255, 255, hasImage ? 140 : 80), 1.5, Qt::DashLine);
             lp.setCosmetic(true);
             auto* l = addLine(0, -H, 0, H, lp);
             l->setZValue(2);
@@ -428,11 +442,11 @@ void FieldScene::applyFieldTemplate(int type) {
                 e->setZValue(4);
                 m_templateItems.append(e);
             };
-            sring( H - T * 0.5,  H - T * 0.5, QColor(80,  110, 220));   // Blue top-right
-            sring(-H + T * 0.5, -(H - T * 0.5), QColor(220,  80,  80)); // Red  bottom-left
+            sring( H - T * 0.5,  H - T * 0.5, QColor(80,  110, 220));
+            sring(-H + T * 0.5, -(H - T * 0.5), QColor(220,  80,  80));
         } else {  // Skills: single robot at Red corner (top-left in scene)
             double cx = -H + T * 0.5;
-            double cy = -H + T * 0.5;   // scene y: top-left corner centre
+            double cy = -H + T * 0.5;
             auto* e = addEllipse(cx - T * 0.38, cy - T * 0.38, T * 0.76, T * 0.76,
                                  QPen(QColor(255, 200, 0), 2, Qt::DashLine), QBrush(Qt::NoBrush));
             e->setZValue(4);
