@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "FieldView.h"
 #include "PathListPanel.h"
+#include "OutputPanel.h"
 #include <QMenuBar>
 #include <QAction>
 #include <QSplitter>
@@ -75,11 +76,22 @@ void MainWindow::buildLayout() {
 
     connect(m_scene, &FieldScene::editModeChanged, this, &MainWindow::onEditModeChanged);
 
-    // ── Splitter ────────────────────────────────────────────────────────────
+    // ── Output panel ────────────────────────────────────────────────────────
+    m_outputPanel = new OutputPanel(m_project, m_scene, this);
+
+    // ── Right side: field on top, output panel on bottom ────────────────────
+    auto* vSplitter = new QSplitter(Qt::Vertical);
+    vSplitter->addWidget(m_fieldView);
+    vSplitter->addWidget(m_outputPanel);
+    vSplitter->setStretchFactor(0, 1);
+    vSplitter->setStretchFactor(1, 0);
+    vSplitter->setSizes({580, 200});
+
+    // ── Main horizontal splitter: left panel | right side ───────────────────
     auto* splitter = new QSplitter(Qt::Horizontal);
     splitter->setHandleWidth(0);
     splitter->addWidget(m_pathListPanel);
-    splitter->addWidget(m_fieldView);
+    splitter->addWidget(vSplitter);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
 
@@ -97,8 +109,8 @@ void MainWindow::newProject() {
     delete m_project;
     m_project = new Project;
     m_scene->setProject(m_project);
-    m_pathListPanel->rebuild(); // Not called via signal here since setProject doesn't emit
-    // Rebuild PathListPanel manually
+    m_pathListPanel->rebuild();
+    m_outputPanel->refreshPathList();
     setWindowTitle("VEX V5 Path Planner — Untitled Project");
     statusBar()->showMessage("New project created.");
 }

@@ -5,6 +5,7 @@
 
 class FieldView;
 class PathListPanel;
+class OutputPanel;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -25,4 +26,5 @@ private:
     FieldScene*    m_scene         = nullptr;
     FieldView*     m_fieldView     = nullptr;
     PathListPanel* m_pathListPanel = nullptr;
+    OutputPanel*   m_outputPanel   = nullptr;
 };

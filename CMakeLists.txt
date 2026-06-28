@@ -32,6 +32,7 @@ set(UI_SOURCES
     src/ui/FieldScene.cpp
     src/ui/FieldView.cpp
     src/ui/PathListPanel.cpp
+    src/ui/OutputPanel.cpp
 )
 
 set(UI_HEADERS
@@ -39,6 +40,15 @@ set(UI_HEADERS
     src/ui/FieldScene.h
     src/ui/FieldView.h
     src/ui/PathListPanel.h
+    src/ui/OutputPanel.h
+)
+
+set(IO_SOURCES
+    src/io/PythonExporter.cpp
+)
+
+set(IO_HEADERS
+    src/io/PythonExporter.h
 )
 
 set(GRAPHICS_SOURCES
@@ -59,6 +69,8 @@ qt_add_executable(PathPlanner
     ${UI_HEADERS}
     ${GRAPHICS_SOURCES}
     ${GRAPHICS_HEADERS}
+    ${IO_SOURCES}
+    ${IO_HEADERS}
 )
 
 target_include_directories(PathPlanner PRIVATE src)
