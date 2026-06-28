@@ -1,5 +1,6 @@
 #include "PathListPanel.h"
 #include "core/PathInterpolator.h"
+#include "core/FieldConstants.h"
 #include <QLabel>
 #include <QPushButton>
 #include <QLineEdit>
@@ -107,14 +108,64 @@ PathListPanel::PathListPanel(Project* project, FieldScene* scene, QWidget* paren
     // ── Info bar at the bottom ──────────────────────────────────────────────
     auto* infoBar = new QWidget(this);
     infoBar->setStyleSheet("background:#14151a; border-top:1px solid #252630;");
-    infoBar->setFixedHeight(46);
     auto* infoLayout = new QVBoxLayout(infoBar);
-    infoLayout->setContentsMargins(12, 5, 12, 5);
+    infoLayout->setContentsMargins(10, 6, 10, 6);
+    infoLayout->setSpacing(4);
+
     m_infoLabel = new QLabel("No path selected", infoBar);
     m_infoLabel->setStyleSheet("color:#484850; font-size:10px;");
     m_infoLabel->setWordWrap(true);
     infoLayout->addWidget(m_infoLabel);
+
+    // Position editors (shown only when a non-empty path is selected)
+    m_posWidget = new QWidget(infoBar);
+    m_posWidget->setVisible(false);
+    auto* posLayout = new QVBoxLayout(m_posWidget);
+    posLayout->setContentsMargins(0, 2, 0, 0);
+    posLayout->setSpacing(3);
+
+    static const char* POS_SPIN_SS =
+        "QDoubleSpinBox {"
+        "  background:#242528; color:#c0c1c6;"
+        "  border:1px solid #35363b; border-radius:3px;"
+        "  padding:1px 2px; font-size:10px;"
+        "}"
+        "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:12px; }";
+
+    auto makePosRow = [&](const QString& rowLabel,
+                          QDoubleSpinBox*& xSpin, QDoubleSpinBox*& ySpin) {
+        auto* row = new QHBoxLayout;
+        row->setSpacing(3);
+
+        auto* lbl = new QLabel(rowLabel, m_posWidget);
+        lbl->setStyleSheet("color:#5a5b60; font-size:10px; min-width:26px;");
+        row->addWidget(lbl);
+
+        auto makeXY = [&](const QString& axis, QDoubleSpinBox*& spin) {
+            auto* axLbl = new QLabel(axis, m_posWidget);
+            axLbl->setStyleSheet("color:#5a5b60; font-size:10px;");
+            row->addWidget(axLbl);
+            spin = new QDoubleSpinBox(m_posWidget);
+            spin->setRange(-Field::HALF_CM, Field::HALF_CM);
+            spin->setDecimals(1);
+            spin->setFixedWidth(58);
+            spin->setStyleSheet(POS_SPIN_SS);
+            row->addWidget(spin);
+        };
+        makeXY("X", xSpin);
+        makeXY("Y", ySpin);
+        posLayout->addLayout(row);
+    };
+
+    makePosRow("Start", m_startXSpin, m_startYSpin);
+    makePosRow("End",   m_endXSpin,   m_endYSpin);
+    infoLayout->addWidget(m_posWidget);
     outerLayout->addWidget(infoBar);
+
+    connect(m_startXSpin, &QAbstractSpinBox::editingFinished, this, &PathListPanel::onStartPosChanged);
+    connect(m_startYSpin, &QAbstractSpinBox::editingFinished, this, &PathListPanel::onStartPosChanged);
+    connect(m_endXSpin,   &QAbstractSpinBox::editingFinished, this, &PathListPanel::onEndPosChanged);
+    connect(m_endYSpin,   &QAbstractSpinBox::editingFinished, this, &PathListPanel::onEndPosChanged);
 
     // Connect scene signals
     connect(m_scene, &FieldScene::pathCountChanged, this, [this](int) { rebuild(); });
@@ -289,14 +340,50 @@ void PathListPanel::openColorPicker(int pathIdx) {
     m_scene->refreshPathItem(pathIdx);
 }
 
+void PathListPanel::onStartPosChanged() {
+    if (m_selectedIdx < 0 || m_selectedIdx >= static_cast<int>(m_project->paths.size())) return;
+    Path& p = m_project->paths[m_selectedIdx];
+    if (p.isEmpty()) return;
+    double newX = m_startXSpin->value();
+    double newY = m_startYSpin->value();
+    Vec2& p0 = p.segments.front().p0;
+    Vec2& p1 = p.segments.front().p1;
+    double dx = newX - p0.x;
+    double dy = newY - p0.y;
+    m_scene->beginEdit();
+    p0.x = newX; p0.y = newY;
+    p1.x += dx;  p1.y += dy;
+    m_project->markModified();
+    m_scene->refreshPathItemFromModel(m_selectedIdx);
+}
+
+void PathListPanel::onEndPosChanged() {
+    if (m_selectedIdx < 0 || m_selectedIdx >= static_cast<int>(m_project->paths.size())) return;
+    Path& p = m_project->paths[m_selectedIdx];
+    if (p.isEmpty()) return;
+    double newX = m_endXSpin->value();
+    double newY = m_endYSpin->value();
+    Vec2& p3 = p.segments.back().p3;
+    Vec2& p2 = p.segments.back().p2;
+    double dx = newX - p3.x;
+    double dy = newY - p3.y;
+    m_scene->beginEdit();
+    p3.x = newX; p3.y = newY;
+    p2.x += dx;  p2.y += dy;
+    m_project->markModified();
+    m_scene->refreshPathItemFromModel(m_selectedIdx);
+}
+
 void PathListPanel::updateInfo(int idx) {
     if (idx < 0 || idx >= static_cast<int>(m_project->paths.size())) {
         m_infoLabel->setText("No path selected");
+        m_posWidget->setVisible(false);
         return;
     }
     const Path& path = m_project->paths[idx];
     if (path.isEmpty()) {
         m_infoLabel->setText(QString::fromStdString(path.name) + " — empty path");
+        m_posWidget->setVisible(false);
         return;
     }
     double len   = path.totalLength();
@@ -308,4 +395,15 @@ void PathListPanel::updateInfo(int idx) {
             .arg(count)
             .arg(step, 0, 'f', 1)
     );
+
+    // Populate position spinboxes without triggering change handlers
+    {
+        QSignalBlocker bsx(*m_startXSpin), bsy(*m_startYSpin),
+                       bex(*m_endXSpin),   bey(*m_endYSpin);
+        m_startXSpin->setValue(path.segments.front().p0.x);
+        m_startYSpin->setValue(path.segments.front().p0.y);
+        m_endXSpin->setValue(path.segments.back().p3.x);
+        m_endYSpin->setValue(path.segments.back().p3.y);
+    }
+    m_posWidget->setVisible(true);
 }

@@ -4,6 +4,7 @@
 #include <QFrame>
 #include <QList>
 #include <QLabel>
+#include <QDoubleSpinBox>
 #include "core/Project.h"
 #include "ui/FieldScene.h"
 
@@ -35,12 +36,19 @@ private:
     void applyRowStyle(QFrame* row, bool selected);
     void openColorPicker(int pathIdx);
     void updateInfo(int idx);
+    void onStartPosChanged();
+    void onEndPosChanged();
 
     Project*    m_project;
     FieldScene* m_scene;
 
     QVBoxLayout* m_rowLayout  = nullptr;
     QList<QFrame*> m_rows;
-    QLabel*      m_infoLabel  = nullptr;
+    QLabel*         m_infoLabel  = nullptr;
+    QWidget*        m_posWidget  = nullptr;
+    QDoubleSpinBox* m_startXSpin = nullptr;
+    QDoubleSpinBox* m_startYSpin = nullptr;
+    QDoubleSpinBox* m_endXSpin   = nullptr;
+    QDoubleSpinBox* m_endYSpin   = nullptr;
     int          m_selectedIdx = -1;
 };

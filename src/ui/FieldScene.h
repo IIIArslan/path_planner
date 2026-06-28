@@ -39,8 +39,11 @@ public:
     void refreshPathItem(int idx);   // repaint after colour/visibility change
     void selectPathAt(int idx);      // select by index (−1 = deselect all)
 
-    // Field template overlay (0=none, 1=HighStakesMatch, 2=HighStakesSkills)
+    // Field template overlay (0=none, 1=OverUnderMatch, 2=OverUnderSkills)
     void applyFieldTemplate(int type);
+
+    // Update control point positions from the path model without recreating items.
+    void refreshPathItemFromModel(int idx);
 
     EditMode editMode()       const { return m_editMode;    }
     int      selectedPathIdx() const { return m_selectedIdx; }

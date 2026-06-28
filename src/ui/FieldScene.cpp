@@ -335,91 +335,111 @@ void FieldScene::applyFieldTemplate(int type) {
     const double H = Field::HALF_CM;   // 182.88 cm
     const double T = Field::TILE_CM;   // 60.96 cm
 
-    // Helper: semi-transparent filled rect in scene coords
-    auto zone = [&](double sx, double sy, double w, double h, QColor c, double alpha = 0.30) {
+    // Semi-transparent filled rect (scene coords; top-left origin)
+    auto zone = [&](double sx, double sy, double w, double h, QColor c, double alpha = 0.28) {
         c.setAlphaF(alpha);
         auto* r = addRect(sx, sy, w, h, QPen(Qt::NoPen), QBrush(c));
         r->setZValue(0.5);
         m_templateItems.append(r);
     };
 
-    // Helper: stake marker at field (fx, fy)
-    auto stake = [&](double fx, double fy, QColor c) {
-        double sx = fx, sy = -fy;   // Y flip: field→scene
-        auto* e = addEllipse(sx - 7, sy - 7, 14, 14,
-                             QPen(c.darker(150), 2), QBrush(c));
-        e->setZValue(3);
-        m_templateItems.append(e);
-    };
-
-    // Helper: mobile goal at field (fx, fy)
-    auto goal = [&](double fx, double fy) {
+    // Filled circle at field (fx, fy)
+    auto dot = [&](double fx, double fy, double r, QColor fill, QColor stroke) {
         double sx = fx, sy = -fy;
-        auto* e = addEllipse(sx - 9, sy - 9, 18, 18,
-                             QPen(QColor(180, 140, 20), 2),
-                             QBrush(QColor(230, 185, 30, 200)));
+        auto* e = addEllipse(sx - r, sy - r, r * 2, r * 2,
+                             QPen(stroke, 1.5), QBrush(fill));
         e->setZValue(3);
         m_templateItems.append(e);
     };
 
-    // ── Alliance zones (scene: red = south = +Y, blue = north = −Y) ─────────
-    // Red alliance bottom 1 tile strip (field y: −H … −H+T → scene y: H−T … H)
-    zone(-H, H - T, Field::SIZE_CM, T, QColor(200, 50, 50));
-    // Blue alliance top 1 tile strip
-    zone(-H, -H,    Field::SIZE_CM, T, QColor(50, 90, 210));
+    // ── VEX Over Under (2023-24) ─────────────────────────────────────────────
 
-    // ── Positive corners (diagonal: blue bottom-right, red top-left) ────────
-    zone( H - T, H - T, T, T, QColor(50, 90, 210), 0.20);   // blue positive corner
-    zone(-H,    -H,     T, T, QColor(200, 50, 50),  0.20);   // red positive corner
+    // Red side: field y < 0 → scene y > 0 → rect top-left (−H, 0), size (SIZE, H)
+    zone(-H, 0, Field::SIZE_CM, H, QColor(200, 50, 50));
+    // Blue side: field y > 0 → scene y < 0 → rect top-left (−H, −H), size (SIZE, H)
+    zone(-H, -H, Field::SIZE_CM, H, QColor(50, 90, 210));
 
-    // ── Autonomous neutral line (center horizontal) ──────────────────────────
+    // Offensive zones (2×1 tile strips near the center, opposite diagonal)
+    // Red offensive (bottom-right of centre): field x∈[0,2T], y∈[−T,0]
+    //   → scene x∈[0,2T], y∈[0,T]   → rect(0, 0, 2T, T)
+    zone(0,    0,   T * 2, T, QColor(200, 50, 50),  0.35);
+    // Blue offensive (top-left of centre): field x∈[−2T,0], y∈[0,T]
+    //   → scene x∈[−2T,0], y∈[−T,0] → rect(−2T, −T, 2T, T)
+    zone(-T * 2, -T, T * 2, T, QColor(50, 90, 210), 0.35);
+
+    // Match-load zones (1×1 tile, scene):
+    // Red load – field bottom-left tile: x∈[−H,−H+T], y∈[−H,−H+T] → scene y∈[H−T,H]
+    zone(-H, H - T, T, T, QColor(200, 50, 50),  0.50);
+    // Blue load – field top-right tile: x∈[H−T,H], y∈[H−T,H] → scene y∈[−H,−H+T]
+    zone(H - T, -H, T, T, QColor(50, 90, 210), 0.50);
+
+    // Center barrier (full-width horizontal strip at y=0 in scene)
     {
-        QPen lp(QColor(255, 255, 255, 80), 1.5, Qt::DashLine);
+        auto* bar = addRect(-H, -5, Field::SIZE_CM, 10,
+                            QPen(Qt::NoPen), QBrush(QColor(160, 160, 160, 210)));
+        bar->setZValue(2);
+        m_templateItems.append(bar);
+    }
+
+    // Autonomous line (vertical, at x=0)
+    {
+        QPen lp(QColor(255, 255, 255, 70), 1.5, Qt::DashLine);
         lp.setCosmetic(true);
-        auto* l = addLine(-H, 0, H, 0, lp);
+        auto* l = addLine(0, -H, 0, H, lp);
         l->setZValue(2);
         m_templateItems.append(l);
     }
 
-    // ── Stakes: 4 corners + 2 side walls + 2 end walls ──────────────────────
-    const QColor stakeCol(220, 220, 220);
-    stake(-H + 8,  H - 8, stakeCol);  stake( H - 8,  H - 8, stakeCol);
-    stake(-H + 8, -H + 8, stakeCol);  stake( H - 8, -H + 8, stakeCol);
-    stake(-H + 8,  0,     stakeCol);  stake( H - 8,  0,     stakeCol);
-    stake( 0,      H - 8, stakeCol);  stake( 0,     -H + 8, stakeCol);
+    // Goals (2 large cylinders, one per half, offset from center barrier)
+    dot( T,      -T * 0.65, 14, QColor(200, 50, 50,  150), QColor(150, 30, 30));
+    dot(-T,       T * 0.65, 14, QColor(50, 90, 210, 150), QColor(30, 60, 170));
 
-    // ── Mobile goals ─────────────────────────────────────────────────────────
-    // 2 on each alliance's side + 1 neutral in center
-    goal(-T,  -H + T * 1.5);  goal( T,  -H + T * 1.5);  // blue side goals
-    goal(-T,   H - T * 1.5);  goal( T,   H - T * 1.5);  // red side goals
-    goal( 0,   0);                                         // center neutral
+    // Triball starting positions (small filled circles)
+    // Red side (~3 positions)
+    dot(-T * 1.5, -T * 0.5, 7, QColor(220, 60, 60, 180),  QColor(160, 30, 30));
+    dot(-T * 0.5, -T * 0.5, 7, QColor(220, 60, 60, 180),  QColor(160, 30, 30));
+    dot( T * 0.5, -T * 1.5, 7, QColor(220, 60, 60, 180),  QColor(160, 30, 30));
+    // Blue side
+    dot( T * 1.5,  T * 0.5, 7, QColor(60, 100, 220, 180), QColor(30, 60, 170));
+    dot( T * 0.5,  T * 0.5, 7, QColor(60, 100, 220, 180), QColor(30, 60, 170));
+    dot(-T * 0.5,  T * 1.5, 7, QColor(60, 100, 220, 180), QColor(30, 60, 170));
 
-    // ── Central ladder structure ─────────────────────────────────────────────
-    {
-        double ls = T * 0.65;
-        auto* ladder = addRect(-ls / 2, -ls / 2, ls, ls,
-                               QPen(QColor(160, 120, 50), 2.5),
-                               QBrush(QColor(140, 105, 40, 55)));
-        ladder->setZValue(2);
-        m_templateItems.append(ladder);
-        // Cross bars
-        QPen cp(QColor(160, 120, 50), 1.5);
-        auto* h1 = addLine(-ls / 2, 0, ls / 2, 0, cp);
-        auto* v1 = addLine(0, -ls / 2, 0, ls / 2, cp);
-        h1->setZValue(2); v1->setZValue(2);
-        m_templateItems.append(h1); m_templateItems.append(v1);
+    // Robot starting positions
+    if (type == 1) {
+        // Match – 2 robots per alliance (bottom row = red, top row = blue)
+        for (double sign : {-1.0, 1.0}) {
+            // Alliance two tiles from the corner
+            double fx1 = -H + T * 0.5, fy1 = sign * (H - T * 0.5);
+            double fx2 = -H + T * 1.5, fy2 = sign * (H - T * 0.5);
+            QColor c = (sign < 0) ? QColor(220, 80, 80) : QColor(80, 110, 220);
+            auto ring = [&](double fx, double fy) {
+                double sx = fx, sy = -fy;
+                auto* e = addEllipse(sx - T * 0.38, sy - T * 0.38, T * 0.76, T * 0.76,
+                                     QPen(c, 2, Qt::DashLine), QBrush(Qt::NoBrush));
+                e->setZValue(4);
+                m_templateItems.append(e);
+            };
+            ring(fx1, fy1);
+            ring(fx2, fy2);
+        }
+    } else {
+        // Skills – single robot, starts at red match-load zone corner tile
+        double cx = -H + T * 0.5, cy = -(H - T * 0.5);  // scene coords
+        auto* e = addEllipse(cx - T * 0.38, cy - T * 0.38, T * 0.76, T * 0.76,
+                             QPen(QColor(255, 200, 0), 2, Qt::DashLine), QBrush(Qt::NoBrush));
+        e->setZValue(4);
+        m_templateItems.append(e);
+        auto* t = addSimpleText("START");
+        t->setBrush(QColor(255, 200, 0));
+        t->setPos(cx - 20, cy - 8);
+        t->setZValue(5);
+        m_templateItems.append(t);
     }
+}
 
-    // ── Skills: show single robot start zone (top-left tile, red start) ──────
-    if (type == 2) {
-        zone(-H, H - T, T, T, QColor(255, 255, 255), 0.25);  // skills start tile
-        QPen sp(QColor(255, 255, 255, 180), 1.5);
-        auto* sl = addText("START");
-        sl->setDefaultTextColor(QColor(255, 255, 255, 200));
-        sl->setPos(-H + 4, H - T + 4);
-        sl->setZValue(4);
-        m_templateItems.append(sl);
-    }
+void FieldScene::refreshPathItemFromModel(int idx) {
+    if (idx >= 0 && idx < m_pathItems.size())
+        m_pathItems[idx]->refreshFromModel();
 }
 
 void FieldScene::buildGrid() {
