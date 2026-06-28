@@ -25,7 +25,13 @@ public:
     // Cancel drawing and remove the partial path (if < 2 points were placed).
     void cancelDrawing();
 
-    EditMode editMode() const { return m_editMode; }
+    // Path management (called by PathListPanel)
+    void removePath(int idx);
+    void refreshPathItem(int idx);   // repaint after colour/visibility change
+    void selectPathAt(int idx);      // select by index (−1 = deselect all)
+
+    EditMode editMode()       const { return m_editMode;    }
+    int      selectedPathIdx() const { return m_selectedIdx; }
 
     // Scene Y is positive-down; field Y is positive-up (north).
     static QPointF sceneToField(QPointF p) { return {p.x(), -p.y()}; }
@@ -34,6 +40,7 @@ public:
 signals:
     void editModeChanged(EditMode mode);
     void pathCountChanged(int count);
+    void pathSelectionChanged(int idx);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
@@ -60,6 +67,7 @@ private:
     int      m_drawPathIdx   = -1;   // index into m_project->paths
     bool     m_hasFirstPoint = false;
     Vec2     m_firstPoint    = {};
+    int      m_selectedIdx   = -1;
 
     // Dashed preview line from last anchor to cursor
     QGraphicsLineItem* m_previewLine = nullptr;

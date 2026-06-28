@@ -1,10 +1,10 @@
 #pragma once
 #include <QMainWindow>
-#include <QPushButton>
 #include "core/Project.h"
 #include "ui/FieldScene.h"
 
 class FieldView;
+class PathListPanel;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -21,8 +21,8 @@ private:
     void newProject();
     void onEditModeChanged(FieldScene::EditMode mode);
 
-    Project*     m_project     = nullptr;
-    FieldScene*  m_scene       = nullptr;
-    FieldView*   m_fieldView   = nullptr;
-    QPushButton* m_addPathBtn  = nullptr;
+    Project*       m_project       = nullptr;
+    FieldScene*    m_scene         = nullptr;
+    FieldView*     m_fieldView     = nullptr;
+    PathListPanel* m_pathListPanel = nullptr;
 };

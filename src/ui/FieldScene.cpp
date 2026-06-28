@@ -218,6 +218,28 @@ void FieldScene::addPointToPath(QPointF fieldPos) {
     m_firstPoint    = {};
 }
 
+void FieldScene::removePath(int idx) {
+    if (!m_project || idx < 0 || idx >= static_cast<int>(m_pathItems.size())) return;
+    m_project->removePath(idx);
+    delete m_pathItems.takeAt(idx);
+    if (m_selectedIdx == idx)       m_selectedIdx = -1;
+    else if (m_selectedIdx > idx)   --m_selectedIdx;
+    emit pathCountChanged(static_cast<int>(m_project->paths.size()));
+    emit pathSelectionChanged(m_selectedIdx);
+}
+
+void FieldScene::refreshPathItem(int idx) {
+    if (idx >= 0 && idx < m_pathItems.size())
+        m_pathItems[idx]->update();
+}
+
+void FieldScene::selectPathAt(int idx) {
+    if (idx >= 0 && idx < m_pathItems.size())
+        selectPath(m_pathItems[idx]);
+    else
+        selectPath(nullptr);
+}
+
 BezierPathItem* FieldScene::createPathItem(Path* path) {
     auto* item = new BezierPathItem(path);
     addItem(item);
@@ -232,8 +254,10 @@ BezierPathItem* FieldScene::createPathItem(Path* path) {
 }
 
 void FieldScene::selectPath(BezierPathItem* selected) {
-    for (auto* item : m_pathItems)
-        item->setEditSelected(item == selected);
+    for (int i = 0; i < m_pathItems.size(); ++i)
+        m_pathItems[i]->setEditSelected(m_pathItems[i] == selected);
+    m_selectedIdx = selected ? m_pathItems.indexOf(selected) : -1;
+    emit pathSelectionChanged(m_selectedIdx);
 }
 
 void FieldScene::buildBackground() {

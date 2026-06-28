@@ -31,12 +31,14 @@ set(UI_SOURCES
     src/ui/MainWindow.cpp
     src/ui/FieldScene.cpp
     src/ui/FieldView.cpp
+    src/ui/PathListPanel.cpp
 )
 
 set(UI_HEADERS
     src/ui/MainWindow.h
     src/ui/FieldScene.h
     src/ui/FieldView.h
+    src/ui/PathListPanel.h
 )
 
 set(GRAPHICS_SOURCES
