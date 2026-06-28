@@ -17,6 +17,7 @@ set(CORE_SOURCES
 )
 
 set(CORE_HEADERS
+    src/core/FieldConstants.h
     src/core/Vec2.h
     src/core/Waypoint.h
     src/core/BezierSegment.h
@@ -26,10 +27,24 @@ set(CORE_HEADERS
     src/core/Project.h
 )
 
+set(UI_SOURCES
+    src/ui/MainWindow.cpp
+    src/ui/FieldScene.cpp
+    src/ui/FieldView.cpp
+)
+
+set(UI_HEADERS
+    src/ui/MainWindow.h
+    src/ui/FieldScene.h
+    src/ui/FieldView.h
+)
+
 qt_add_executable(PathPlanner
     src/main.cpp
     ${CORE_SOURCES}
     ${CORE_HEADERS}
+    ${UI_SOURCES}
+    ${UI_HEADERS}
 )
 
 target_include_directories(PathPlanner PRIVATE src)
