@@ -11,7 +11,7 @@ RobotItem::RobotItem(QGraphicsItem* parent)
     setFlag(ItemIsMovable);
     setFlag(ItemSendsGeometryChanges);
     setZValue(10);
-    setCursor(Qt::SizeAllCursor);
+    setCursor(QCursor(Qt::SizeAllCursor));
 }
 
 void RobotItem::applyConfig(const RobotConfig& cfg) {

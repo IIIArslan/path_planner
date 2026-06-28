@@ -11,7 +11,7 @@ ControlPointItem::ControlPointItem(Role role, QGraphicsItem* parent)
     setFlag(ItemIsMovable);
     setFlag(ItemSendsGeometryChanges);
     setFlag(ItemIgnoresTransformations); // always drawn at fixed screen size
-    setCursor(Qt::SizeAllCursor);
+    setCursor(QCursor(Qt::SizeAllCursor));
 
     if (role == Role::Anchor) {
         setRect(-6.0, -6.0, 12.0, 12.0);

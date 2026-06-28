@@ -18,7 +18,7 @@ FieldView::FieldView(QWidget* parent)
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setFrameShape(QFrame::NoFrame);
     setMouseTracking(true);
-    setCursor(Qt::CrossCursor);
+    setCursor(QCursor(Qt::CrossCursor));
     setBackgroundBrush(QColor(18, 18, 22));
 
     // Floating coordinate tooltip — rendered over the view, not inside the scene
@@ -52,7 +52,7 @@ void FieldView::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::MiddleButton) {
         m_panning    = true;
         m_lastPanPos = event->pos();
-        setCursor(Qt::ClosedHandCursor);
+        setCursor(QCursor(Qt::ClosedHandCursor));
         event->accept();
         return;
     }
@@ -62,7 +62,7 @@ void FieldView::mousePressEvent(QMouseEvent* event) {
 void FieldView::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() == Qt::MiddleButton) {
         m_panning = false;
-        setCursor(Qt::CrossCursor);
+        setCursor(QCursor(Qt::CrossCursor));
         event->accept();
         return;
     }
