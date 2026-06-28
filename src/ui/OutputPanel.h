@@ -4,6 +4,7 @@
 #include <QDoubleSpinBox>
 #include <QTextEdit>
 #include <QLabel>
+#include <QPushButton>
 #include "core/Project.h"
 #include "ui/FieldScene.h"
 
