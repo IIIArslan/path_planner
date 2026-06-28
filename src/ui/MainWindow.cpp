@@ -1,14 +1,17 @@
 #include "MainWindow.h"
 #include "FieldView.h"
+#include "RobotPanel.h"
 #include "PathListPanel.h"
 #include "OutputPanel.h"
 #include <QMenuBar>
 #include <QAction>
 #include <QSplitter>
+#include <QFrame>
 #include <QLabel>
 #include <QStatusBar>
 #include <QFileDialog>
 #include <QKeyEvent>
+#include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -71,8 +74,24 @@ void MainWindow::buildLayout() {
     m_fieldView->setScene(m_scene);
     m_scene->setProject(m_project);
 
-    // ── Path list panel (left sidebar) ──────────────────────────────────────
+    // ── Left sidebar: robot config on top, path list below ──────────────────
+    m_robotPanel    = new RobotPanel(m_project, m_scene, this);
     m_pathListPanel = new PathListPanel(m_project, m_scene, this);
+
+    auto* leftWidget = new QWidget(this);
+    leftWidget->setFixedWidth(220);
+    auto* leftLayout = new QVBoxLayout(leftWidget);
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    leftLayout->setSpacing(0);
+    leftLayout->addWidget(m_robotPanel);
+
+    // Separator between robot panel and path list
+    auto* sep = new QFrame(this);
+    sep->setFrameShape(QFrame::HLine);
+    sep->setStyleSheet("color:#252630;");
+    leftLayout->addWidget(sep);
+
+    leftLayout->addWidget(m_pathListPanel, 1);
 
     connect(m_scene, &FieldScene::editModeChanged, this, &MainWindow::onEditModeChanged);
 
@@ -87,10 +106,10 @@ void MainWindow::buildLayout() {
     vSplitter->setStretchFactor(1, 0);
     vSplitter->setSizes({580, 200});
 
-    // ── Main horizontal splitter: left panel | right side ───────────────────
+    // ── Main horizontal splitter: left sidebar | right side ─────────────────
     auto* splitter = new QSplitter(Qt::Horizontal);
     splitter->setHandleWidth(0);
-    splitter->addWidget(m_pathListPanel);
+    splitter->addWidget(leftWidget);
     splitter->addWidget(vSplitter);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
@@ -109,6 +128,8 @@ void MainWindow::newProject() {
     delete m_project;
     m_project = new Project;
     m_scene->setProject(m_project);
+    m_robotPanel->setProject(m_project);
+    m_pathListPanel->setProject(m_project);
     m_pathListPanel->rebuild();
     m_outputPanel->refreshPathList();
     setWindowTitle("VEX V5 Path Planner — Untitled Project");

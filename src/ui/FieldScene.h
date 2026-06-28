@@ -6,6 +6,7 @@
 #include <QList>
 #include "core/Project.h"
 #include "graphics/BezierPathItem.h"
+#include "graphics/RobotItem.h"
 
 class FieldScene : public QGraphicsScene {
     Q_OBJECT
@@ -17,6 +18,8 @@ public:
     void setProject(Project* project);
     void loadFieldImage(const QString& path);
     void clearFieldImage();
+    void setRobotVisible(bool v);
+    void applyRobotConfig(const RobotConfig& cfg);
 
     // Start drawing a new path (switches to DrawPath mode).
     void startNewPath();
@@ -41,6 +44,7 @@ signals:
     void editModeChanged(EditMode mode);
     void pathCountChanged(int count);
     void pathSelectionChanged(int idx);
+    void robotMoved(double x, double y, double headingDeg);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
@@ -61,6 +65,7 @@ private:
 
     // Path items — parallel to m_project->paths
     QList<BezierPathItem*> m_pathItems;
+    RobotItem* m_robotItem = nullptr;
 
     // Drawing state
     EditMode m_editMode      = EditMode::Select;

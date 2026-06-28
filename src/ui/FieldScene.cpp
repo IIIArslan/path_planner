@@ -14,6 +14,18 @@ FieldScene::FieldScene(QObject* parent)
     buildBackground();
     buildGrid();
 
+    // Robot item (always present; repositioned when project is loaded)
+    m_robotItem = new RobotItem;
+    addItem(m_robotItem);
+    connect(m_robotItem, &RobotItem::poseChanged, this, [this](double x, double y, double h) {
+        if (m_project) {
+            m_project->robotConfig.startX       = x;
+            m_project->robotConfig.startY       = y;
+            m_project->robotConfig.startHeading = h;
+        }
+        emit robotMoved(x, y, h);
+    });
+
     // Preview line (dashed, cosmetic)
     QPen previewPen(QColor(200, 200, 200, 100), 1.0, Qt::DashLine);
     previewPen.setCosmetic(true);
@@ -35,6 +47,8 @@ void FieldScene::setProject(Project* project) {
     // Rebuild items for any pre-existing paths
     for (auto& path : m_project->paths)
         m_pathItems.append(createPathItem(&path));
+
+    m_robotItem->applyConfig(m_project->robotConfig);
 }
 
 void FieldScene::loadFieldImage(const QString& path) {
@@ -59,6 +73,14 @@ void FieldScene::loadFieldImage(const QString& path) {
 void FieldScene::clearFieldImage() {
     if (m_img) { removeItem(m_img); delete m_img; m_img = nullptr; }
     if (m_bg)  m_bg->setVisible(true);
+}
+
+void FieldScene::setRobotVisible(bool v) {
+    if (m_robotItem) m_robotItem->setVisible(v);
+}
+
+void FieldScene::applyRobotConfig(const RobotConfig& cfg) {
+    if (m_robotItem) m_robotItem->applyConfig(cfg);
 }
 
 void FieldScene::startNewPath() {

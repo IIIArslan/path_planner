@@ -14,6 +14,9 @@ class PathListPanel : public QWidget {
 public:
     explicit PathListPanel(Project* project, FieldScene* scene, QWidget* parent = nullptr);
 
+    // Switch to a different project (call before rebuild() on project replace).
+    void setProject(Project* p) { m_project = p; }
+
     // Rebuild the entire list from the current project state.
     void rebuild();
 

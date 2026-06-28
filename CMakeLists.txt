@@ -31,6 +31,7 @@ set(UI_SOURCES
     src/ui/MainWindow.cpp
     src/ui/FieldScene.cpp
     src/ui/FieldView.cpp
+    src/ui/RobotPanel.cpp
     src/ui/PathListPanel.cpp
     src/ui/OutputPanel.cpp
 )
@@ -39,6 +40,7 @@ set(UI_HEADERS
     src/ui/MainWindow.h
     src/ui/FieldScene.h
     src/ui/FieldView.h
+    src/ui/RobotPanel.h
     src/ui/PathListPanel.h
     src/ui/OutputPanel.h
 )
@@ -54,11 +56,13 @@ set(IO_HEADERS
 set(GRAPHICS_SOURCES
     src/graphics/ControlPointItem.cpp
     src/graphics/BezierPathItem.cpp
+    src/graphics/RobotItem.cpp
 )
 
 set(GRAPHICS_HEADERS
     src/graphics/ControlPointItem.h
     src/graphics/BezierPathItem.h
+    src/graphics/RobotItem.h
 )
 
 qt_add_executable(PathPlanner

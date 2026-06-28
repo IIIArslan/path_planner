@@ -4,6 +4,7 @@
 #include "ui/FieldScene.h"
 
 class FieldView;
+class RobotPanel;
 class PathListPanel;
 class OutputPanel;
 
@@ -25,6 +26,7 @@ private:
     Project*       m_project       = nullptr;
     FieldScene*    m_scene         = nullptr;
     FieldView*     m_fieldView     = nullptr;
+    RobotPanel*    m_robotPanel    = nullptr;
     PathListPanel* m_pathListPanel = nullptr;
     OutputPanel*   m_outputPanel   = nullptr;
 };
