@@ -1,0 +1,32 @@
+# Build directories
+build/
+build-*/
+cmake-build-*/
+out/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Qt MOC / UIC / RCC generated
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qm
+
+# Binaries
+*.exe
+*.app
+*.out
+PathPlanner
+
+# IDE files
+.vscode/
+.idea/
+*.user
+*.pro.user*
+.DS_Store
