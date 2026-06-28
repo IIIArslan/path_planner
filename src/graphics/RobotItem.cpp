@@ -3,6 +3,7 @@
 #include <QPen>
 #include <QBrush>
 #include <QColor>
+#include <QCursor>
 #include <QPolygonF>
 
 RobotItem::RobotItem(QGraphicsItem* parent)

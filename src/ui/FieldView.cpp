@@ -5,6 +5,7 @@
 #include <QWheelEvent>
 #include <QShowEvent>
 #include <QScrollBar>
+#include <QCursor>
 #include <cmath>
 
 FieldView::FieldView(QWidget* parent)

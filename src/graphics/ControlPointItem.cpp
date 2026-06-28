@@ -1,6 +1,7 @@
 #include "ControlPointItem.h"
 #include <QPen>
 #include <QBrush>
+#include <QCursor>
 #include <QGraphicsSceneMouseEvent>
 
 ControlPointItem::ControlPointItem(Role role, QGraphicsItem* parent)
