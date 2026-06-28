@@ -23,6 +23,9 @@ public:
     // Re-read control point positions from the Path model and rebuild items.
     void refreshFromModel();
 
+    // Sync control-point colours and visibility after a colour or visible change.
+    void syncFromModel();
+
     // Show / hide control-point handles (only visible when this path is selected).
     void setEditSelected(bool sel);
     bool editSelected() const { return m_editSelected; }
@@ -42,6 +45,7 @@ private:
     void buildItems();
     void clearItems();
     void updateCurve();
+    void applyColors();
 
     void onAnchorMoved(int anchorIdx, QPointF scenePos);
     void onHandleMoved(int segIdx, bool isP1, QPointF scenePos);

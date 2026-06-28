@@ -276,7 +276,7 @@ void FieldScene::mergePathsAt(int a, int b) {
 
 void FieldScene::refreshPathItem(int idx) {
     if (idx >= 0 && idx < m_pathItems.size())
-        m_pathItems[idx]->update();
+        m_pathItems[idx]->syncFromModel();
 }
 
 void FieldScene::selectPathAt(int idx) {

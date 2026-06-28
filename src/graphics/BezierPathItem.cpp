@@ -35,13 +35,22 @@ void BezierPathItem::refreshFromModel() {
         buildItems();
         updateCurve();
     }
+    syncFromModel();
+}
+
+void BezierPathItem::syncFromModel() {
+    applyColors();
+    bool show = m_editSelected && m_path->visible;
+    for (auto* a  : m_anchors)    a->setVisible(show);
+    for (auto& sh : m_segHandles) { sh.p1->setVisible(show); sh.p2->setVisible(show); }
     update();
 }
 
 void BezierPathItem::setEditSelected(bool sel) {
     m_editSelected = sel;
-    for (auto* a  : m_anchors)    a->setVisible(sel);
-    for (auto& sh : m_segHandles) { sh.p1->setVisible(sel); sh.p2->setVisible(sel); }
+    bool show = sel && m_path->visible;
+    for (auto* a  : m_anchors)    a->setVisible(show);
+    for (auto& sh : m_segHandles) { sh.p1->setVisible(show); sh.p2->setVisible(show); }
     update();
 }
 
@@ -52,8 +61,8 @@ void BezierPathItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, Q
 
     painter->setRenderHint(QPainter::Antialiasing);
 
-    // Handle arm lines (dashed): only when edit-selected
-    if (m_editSelected) {
+    // Handle arm lines (dashed): only when edit-selected AND path is visible
+    if (m_editSelected && m_path->visible) {
         QPen armPen(QColor(170, 170, 180, 130), 1.0, Qt::DashLine);
         armPen.setCosmetic(true);
         painter->setPen(armPen);
@@ -117,6 +126,13 @@ void BezierPathItem::buildItems() {
 
         m_segHandles.append(SegHandles{h1, h2});
     }
+}
+
+void BezierPathItem::applyColors() {
+    const auto& c = m_path->color;
+    QColor qc(c.r, c.g, c.b);
+    for (auto* a  : m_anchors)    a->setPathColor(qc);
+    for (auto& sh : m_segHandles) { sh.p1->setPathColor(qc); sh.p2->setPathColor(qc); }
 }
 
 void BezierPathItem::clearItems() {

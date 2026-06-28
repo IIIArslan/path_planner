@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QGraphicsEllipseItem>
+#include <QColor>
 
 // A single draggable control point rendered at fixed screen size (ItemIgnoresTransformations).
 // Emits positionChanged(scenePos) whenever it is dragged.
@@ -11,6 +12,9 @@ public:
 
     explicit ControlPointItem(Role role, QGraphicsItem* parent = nullptr);
     Role role() const { return m_role; }
+
+    // Update pen/brush to match the owning path's colour.
+    void setPathColor(QColor c);
 
 signals:
     void positionChanged(QPointF newScenePos);

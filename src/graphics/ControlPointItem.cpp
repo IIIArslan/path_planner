@@ -27,6 +27,16 @@ ControlPointItem::ControlPointItem(Role role, QGraphicsItem* parent)
     setZValue(20);
 }
 
+void ControlPointItem::setPathColor(QColor c) {
+    if (m_role == Role::Anchor) {
+        setBrush(Qt::white);
+        setPen(QPen(c, 1.5));
+    } else {
+        setBrush(c.lighter(140));
+        setPen(QPen(c, 1.2));
+    }
+}
+
 void ControlPointItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     emit dragStarted();
     QGraphicsEllipseItem::mousePressEvent(event);
