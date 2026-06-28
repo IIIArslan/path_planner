@@ -352,6 +352,100 @@ void FieldScene::applyFieldTemplate(int type) {
         m_templateItems.append(e);
     };
 
+    // ── VEX Override (2026-27) ───────────────────────────────────────────────
+    // After 90°-CW display rotation: Blue=+X (right wall), Red=−X (left wall), Neutral=±Y
+    if (type >= 3) {
+        // Light mat background on top of the dark default
+        {
+            auto* mat = addRect(-H, -H, Field::SIZE_CM, Field::SIZE_CM,
+                                QPen(Qt::NoPen), QBrush(QColor(215, 210, 200)));
+            mat->setZValue(-1.5);
+            m_templateItems.append(mat);
+        }
+        // Diagonal X lines corner-to-corner (field: SW↔NE and NW↔SE)
+        {
+            QPen xp(QColor(160, 158, 152, 230), 14.0);
+            auto* l1 = addLine(-H,  H,  H, -H, xp);   // scene: BL→TR
+            auto* l2 = addLine(-H, -H,  H,  H, xp);   // scene: TL→BR
+            l1->setZValue(0.2);  l2->setZValue(0.2);
+            m_templateItems << l1 << l2;
+        }
+        // Alliance corner zones (1×1 tile, 2 per alliance)
+        zone(H - T,    -H, T, T, QColor(50,  90, 210), 0.55);   // Blue: top-right
+        zone(H - T,  H-T,  T, T, QColor(50,  90, 210), 0.55);   // Blue: bottom-right
+        zone(-H,      -H,  T, T, QColor(200,  50,  50), 0.55);   // Red:  top-left
+        zone(-H,     H-T,  T, T, QColor(200,  50,  50), 0.55);   // Red:  bottom-left
+        // Match-load zones (yellow bar, 1T wide × 2T tall, centred on alliance walls)
+        zone(H - T,  -T, T, T * 2, QColor(240, 200, 0), 0.40);
+        zone(-H,     -T, T, T * 2, QColor(240, 200, 0), 0.40);
+        // Neutral-wall accent strips (±Y walls, 0.5T deep)
+        zone(-H, -H,            Field::SIZE_CM, T * 0.5, QColor(200, 200, 200), 0.22);
+        zone(-H,  H - T * 0.5,  Field::SIZE_CM, T * 0.5, QColor(200, 200, 200), 0.22);
+        // Center high stake
+        dot(0, 0, 18, QColor(150, 150, 150, 220), QColor(80, 80, 80));
+        // Neutral-wall stakes (midpoints of ±Y walls, 0.5T inset)
+        dot(0,  H - T * 0.5, 12, QColor(180, 180, 180, 220), QColor(110, 110, 110));
+        dot(0, -(H - T * 0.5), 12, QColor(180, 180, 180, 220), QColor(110, 110, 110));
+        // Alliance wall stakes (midpoints of ±X walls, 0.5T inset)
+        dot( H - T * 0.5, 0, 12, QColor(50,  90, 210, 220), QColor(30,  60, 170));
+        dot(-H + T * 0.5, 0, 12, QColor(200,  50,  50, 220), QColor(150,  30,  30));
+        // Rings (yellow, 10 rings in 180°-symmetric layout)
+        auto gameRing = [&](double fx, double fy) {
+            dot( fx,  fy, 8, QColor(240, 200, 0, 200), QColor(190, 150, 0));
+            dot(-fx, -fy, 8, QColor(240, 200, 0, 200), QColor(190, 150, 0));
+        };
+        gameRing(T * 1.5,   0);
+        gameRing(0,       T * 1.5);
+        gameRing(T,       T);
+        gameRing(T * 2,   T);
+        gameRing(T,       T * 2);
+        // Mobile goal markers (dark squares, 4-way symmetric at 2T from centre)
+        auto mgoal = [&](double fx, double fy, double sz) {
+            double sx = fx - sz / 2, sy = -fy - sz / 2;
+            auto* r = addRect(sx, sy, sz, sz,
+                              QPen(QColor(40, 40, 40), 1.5), QBrush(QColor(60, 60, 60, 210)));
+            r->setZValue(3);
+            m_templateItems.append(r);
+        };
+        mgoal( T * 2.0,  0,       14);
+        mgoal(-T * 2.0,  0,       14);
+        mgoal(0,          T * 2.0, 14);
+        mgoal(0,         -T * 2.0, 14);
+        // Autonomous line (dashed vertical at x=0)
+        {
+            QPen lp(QColor(255, 255, 255, 80), 1.5, Qt::DashLine);
+            lp.setCosmetic(true);
+            auto* l = addLine(0, -H, 0, H, lp);
+            l->setZValue(2);
+            m_templateItems.append(l);
+        }
+        // Robot start positions
+        if (type == 3) {  // Match: one robot per alliance, inside their corner zones
+            auto sring = [&](double fx, double fy, QColor c) {
+                double sx = fx, sy = -fy;
+                auto* e = addEllipse(sx - T * 0.38, sy - T * 0.38, T * 0.76, T * 0.76,
+                                     QPen(c, 2, Qt::DashLine), QBrush(Qt::NoBrush));
+                e->setZValue(4);
+                m_templateItems.append(e);
+            };
+            sring( H - T * 0.5,  H - T * 0.5, QColor(80,  110, 220));   // Blue top-right
+            sring(-H + T * 0.5, -(H - T * 0.5), QColor(220,  80,  80)); // Red  bottom-left
+        } else {  // Skills: single robot at Red corner (top-left in scene)
+            double cx = -H + T * 0.5;
+            double cy = -H + T * 0.5;   // scene y: top-left corner centre
+            auto* e = addEllipse(cx - T * 0.38, cy - T * 0.38, T * 0.76, T * 0.76,
+                                 QPen(QColor(255, 200, 0), 2, Qt::DashLine), QBrush(Qt::NoBrush));
+            e->setZValue(4);
+            m_templateItems.append(e);
+            auto* txt = addSimpleText("START");
+            txt->setBrush(QColor(255, 200, 0));
+            txt->setPos(cx - 20, cy - 8);
+            txt->setZValue(5);
+            m_templateItems.append(txt);
+        }
+        return;
+    }
+
     // ── VEX Over Under (2023-24) ─────────────────────────────────────────────
 
     // Red side: field y < 0 → scene y > 0 → rect top-left (−H, 0), size (SIZE, H)
