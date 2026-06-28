@@ -115,7 +115,7 @@ void BezierPathItem::buildItems() {
             [this, si](QPointF sp) { onHandleMoved(si, false, sp); });
         connect(h2, &ControlPointItem::dragStarted, this, [this]{ emit aboutToEdit(); });
 
-        m_segHandles.append({h1, h2});
+        m_segHandles.append(SegHandles{h1, h2});
     }
 }
 
