@@ -19,6 +19,7 @@ public:
 
 private:
     void generate();
+    void generateAll();
 
     static QTextEdit*  makeTextArea(QWidget* parent);
     static QPushButton* makeCopyBtn(QTextEdit* target, QWidget* parent);

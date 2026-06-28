@@ -247,11 +247,24 @@ void FieldScene::addPointToPath(QPointF fieldPos) {
 
 void FieldScene::removePath(int idx) {
     if (!m_project || idx < 0 || idx >= static_cast<int>(m_pathItems.size())) return;
-    emit projectAboutToChange();   // snapshot before delete
-    m_project->removePath(idx);
-    delete m_pathItems.takeAt(idx);
+    emit projectAboutToChange();
     if (m_selectedIdx == idx)       m_selectedIdx = -1;
     else if (m_selectedIdx > idx)   --m_selectedIdx;
+    m_project->removePath(idx);
+    rebuildPathItems();
+    emit pathCountChanged(static_cast<int>(m_project->paths.size()));
+    emit pathSelectionChanged(m_selectedIdx);
+}
+
+void FieldScene::mergePathsAt(int a, int b) {
+    int n = static_cast<int>(m_pathItems.size());
+    if (!m_project || a < 0 || b < 0 || a >= n || b >= n || a == b) return;
+    emit projectAboutToChange();
+    m_project->mergePaths(a, b);   // appends b into a, erases b
+    // Update selected index: if b was selected → switch to a; if b was before selected → shift down
+    if      (m_selectedIdx == b) m_selectedIdx = a;
+    else if (m_selectedIdx > b)  --m_selectedIdx;
+    rebuildPathItems();
     emit pathCountChanged(static_cast<int>(m_project->paths.size()));
     emit pathSelectionChanged(m_selectedIdx);
 }
@@ -287,6 +300,17 @@ void FieldScene::selectPath(BezierPathItem* selected) {
         m_pathItems[i]->setEditSelected(m_pathItems[i] == selected);
     m_selectedIdx = selected ? m_pathItems.indexOf(selected) : -1;
     emit pathSelectionChanged(m_selectedIdx);
+}
+
+void FieldScene::rebuildPathItems() {
+    for (auto* item : m_pathItems) { removeItem(item); delete item; }
+    m_pathItems.clear();
+    if (!m_project) return;
+    for (auto& path : m_project->paths)
+        createPathItem(&path);
+    // Restore selection highlight
+    if (m_selectedIdx >= 0 && m_selectedIdx < m_pathItems.size())
+        m_pathItems[m_selectedIdx]->setEditSelected(true);
 }
 
 void FieldScene::buildBackground() {

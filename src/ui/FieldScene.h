@@ -24,6 +24,9 @@ public:
     // Call before any user-initiated edit to allow MainWindow to push an undo snapshot.
     void beginEdit();
 
+    // Merge path b's segments into path a, then remove b.
+    void mergePathsAt(int a, int b);
+
     // Start drawing a new path (switches to DrawPath mode).
     void startNewPath();
     // Finish the current drawing session and return to Select mode.
@@ -61,6 +64,7 @@ private:
     void addPointToPath(QPointF fieldPos);
     BezierPathItem* createPathItem(Path* path);
     void selectPath(BezierPathItem* item);
+    void rebuildPathItems();   // re-creates all path items from m_project->paths
 
     Project*              m_project  = nullptr;
     QGraphicsRectItem*    m_bg       = nullptr;

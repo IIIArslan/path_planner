@@ -1,10 +1,12 @@
 #include "PathListPanel.h"
+#include "core/PathInterpolator.h"
 #include <QLabel>
 #include <QPushButton>
 #include <QLineEdit>
 #include <QHBoxLayout>
 #include <QScrollArea>
 #include <QColorDialog>
+#include <QMenu>
 #include <QEvent>
 #include <QMouseEvent>
 
@@ -102,9 +104,27 @@ PathListPanel::PathListPanel(Project* project, FieldScene* scene, QWidget* paren
     scroll->setStyleSheet("background:transparent;");
     outerLayout->addWidget(scroll, 1);
 
+    // ── Info bar at the bottom ──────────────────────────────────────────────
+    auto* infoBar = new QWidget(this);
+    infoBar->setStyleSheet("background:#14151a; border-top:1px solid #252630;");
+    infoBar->setFixedHeight(46);
+    auto* infoLayout = new QVBoxLayout(infoBar);
+    infoLayout->setContentsMargins(12, 5, 12, 5);
+    m_infoLabel = new QLabel("No path selected", infoBar);
+    m_infoLabel->setStyleSheet("color:#484850; font-size:10px;");
+    m_infoLabel->setWordWrap(true);
+    infoLayout->addWidget(m_infoLabel);
+    outerLayout->addWidget(infoBar);
+
     // Connect scene signals
     connect(m_scene, &FieldScene::pathCountChanged, this, [this](int) { rebuild(); });
-    connect(m_scene, &FieldScene::pathSelectionChanged, this, &PathListPanel::setSelectedRow);
+    connect(m_scene, &FieldScene::pathSelectionChanged, this, [this](int idx) {
+        setSelectedRow(idx);
+        updateInfo(idx);
+    });
+    connect(m_scene, &FieldScene::pathCountChanged, this, [this](int) {
+        updateInfo(m_selectedIdx);
+    });
 }
 
 // ── public API ─────────────────────────────────────────────────────────────
@@ -196,6 +216,23 @@ void PathListPanel::addRow(int pathIdx) {
     });
     layout->addWidget(eyeBtn);
 
+    // ── Merge button ────────────────────────────────────────────────────────
+    auto* mergeBtn = new QPushButton("⊕", row);
+    mergeBtn->setStyleSheet(ICON_BTN_STYLE);
+    mergeBtn->setFixedSize(24, 24);
+    mergeBtn->setToolTip("Merge with another path");
+    connect(mergeBtn, &QPushButton::clicked, this, [this, pathIdx, mergeBtn]() {
+        if (static_cast<int>(m_project->paths.size()) < 2) return;
+        QMenu menu;
+        for (int i = 0; i < static_cast<int>(m_project->paths.size()); ++i) {
+            if (i == pathIdx) continue;
+            menu.addAction(QString::fromStdString(m_project->paths[i].name),
+                [this, pathIdx, i]() { m_scene->mergePathsAt(pathIdx, i); });
+        }
+        menu.exec(mergeBtn->mapToGlobal(mergeBtn->rect().bottomLeft()));
+    });
+    layout->addWidget(mergeBtn);
+
     // ── Delete button ───────────────────────────────────────────────────────
     auto* delBtn = new QPushButton("✕", row);
     delBtn->setStyleSheet(DELETE_BTN_STYLE);
@@ -243,4 +280,25 @@ void PathListPanel::openColorPicker(int pathIdx) {
     c.g = static_cast<uint8_t>(chosen.green());
     c.b = static_cast<uint8_t>(chosen.blue());
     m_scene->refreshPathItem(pathIdx);
+}
+
+void PathListPanel::updateInfo(int idx) {
+    if (idx < 0 || idx >= static_cast<int>(m_project->paths.size())) {
+        m_infoLabel->setText("No path selected");
+        return;
+    }
+    const Path& path = m_project->paths[idx];
+    if (path.isEmpty()) {
+        m_infoLabel->setText(QString::fromStdString(path.name) + " — empty path");
+        return;
+    }
+    double len   = path.totalLength();
+    double step  = m_project->stepSizeCm;
+    int    count = static_cast<int>(PathInterpolator::interpolate(path, step).size());
+    m_infoLabel->setText(
+        QString("%1 cm  ·  ~%2 pts @ %3 cm step")
+            .arg(len, 0, 'f', 1)
+            .arg(count)
+            .arg(step, 0, 'f', 1)
+    );
 }

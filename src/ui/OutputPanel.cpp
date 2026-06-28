@@ -132,8 +132,11 @@ OutputPanel::OutputPanel(Project* project, FieldScene* scene, QWidget* parent)
     // Sync combo when paths change
     connect(m_scene, &FieldScene::pathCountChanged,    this, [this](int) { refreshPathList(); });
     connect(m_scene, &FieldScene::pathSelectionChanged, this, [this](int idx) {
-        if (idx >= 0 && idx < m_pathCombo->count())
-            m_pathCombo->setCurrentIndex(idx);
+        if (idx >= 0) {
+            int comboIdx = idx + 1; // offset for "All Paths" at index 0
+            if (comboIdx < m_pathCombo->count())
+                m_pathCombo->setCurrentIndex(comboIdx);
+        }
     });
 
     refreshPathList();
@@ -151,6 +154,7 @@ void OutputPanel::setProject(Project* p) {
 void OutputPanel::refreshPathList() {
     m_pathCombo->blockSignals(true);
     m_pathCombo->clear();
+    m_pathCombo->addItem("All Paths");
     for (const auto& path : m_project->paths)
         m_pathCombo->addItem(QString::fromStdString(path.name));
     m_pathCombo->blockSignals(false);
@@ -159,8 +163,21 @@ void OutputPanel::refreshPathList() {
 // ── private ────────────────────────────────────────────────────────────────
 
 void OutputPanel::generate() {
-    int idx = m_pathCombo->currentIndex();
-    if (idx < 0 || idx >= static_cast<int>(m_project->paths.size())) {
+    int comboIdx = m_pathCombo->currentIndex();
+    if (comboIdx < 0) {
+        m_wpText->setPlainText("# No path selected.");
+        m_hdText->setPlainText("# No path selected.");
+        m_statusLbl->setText("");
+        return;
+    }
+
+    if (comboIdx == 0) {
+        generateAll();
+        return;
+    }
+
+    int idx = comboIdx - 1; // offset for "All Paths" at combo index 0
+    if (idx >= static_cast<int>(m_project->paths.size())) {
         m_wpText->setPlainText("# No path selected.");
         m_hdText->setPlainText("# No path selected.");
         m_statusLbl->setText("");
@@ -175,6 +192,45 @@ void OutputPanel::generate() {
     m_statusLbl->setText(
         QString("Generated %1 waypoints  ·  step = %2 cm")
             .arg(out.pointCount)
+            .arg(stepCm, 0, 'f', 1)
+    );
+}
+
+void OutputPanel::generateAll() {
+    if (m_project->paths.empty()) {
+        m_wpText->setPlainText("# No paths.");
+        m_hdText->setPlainText("# No paths.");
+        m_statusLbl->setText("");
+        return;
+    }
+
+    double stepCm = m_stepSpin->value();
+    QString wpAll, hdAll;
+    int totalPoints = 0;
+    int pathCount   = 0;
+
+    for (const auto& path : m_project->paths) {
+        if (path.isEmpty()) continue;
+        auto out = PythonExporter::generate(path, stepCm);
+        wpAll += out.waypointCode + "\n\n";
+        hdAll += out.headingCode  + "\n\n";
+        totalPoints += out.pointCount;
+        ++pathCount;
+    }
+
+    if (pathCount == 0) {
+        m_wpText->setPlainText("# All paths are empty.");
+        m_hdText->setPlainText("# All paths are empty.");
+        m_statusLbl->setText("");
+        return;
+    }
+
+    m_wpText->setPlainText(wpAll.trimmed());
+    m_hdText->setPlainText(hdAll.trimmed());
+    m_statusLbl->setText(
+        QString("Generated %1 waypoints across %2 paths  ·  step = %3 cm")
+            .arg(totalPoints)
+            .arg(pathCount)
             .arg(stepCm, 0, 'f', 1)
     );
 }
