@@ -424,8 +424,7 @@ void FieldScene::applyFieldTemplate(int type) {
             mgoal(0, T * 2.0, 14);   mgoal(0, -T * 2.0, 14);
         }
 
-        // ── Always-on overlays ───────────────────────────────────────────────
-        // Autonomous line (dashed vertical at x=0)
+        // ── Autonomous line (dashed vertical at x=0) ────────────────────────
         {
             QPen lp(QColor(255, 255, 255, hasImage ? 140 : 80), 1.5, Qt::DashLine);
             lp.setCosmetic(true);
@@ -433,115 +432,7 @@ void FieldScene::applyFieldTemplate(int type) {
             l->setZValue(2);
             m_templateItems.append(l);
         }
-        // Robot start positions
-        if (type == 3) {  // Match: one robot per alliance, inside their corner zones
-            auto sring = [&](double fx, double fy, QColor c) {
-                double sx = fx, sy = -fy;
-                auto* e = addEllipse(sx - T * 0.38, sy - T * 0.38, T * 0.76, T * 0.76,
-                                     QPen(c, 2, Qt::DashLine), QBrush(Qt::NoBrush));
-                e->setZValue(4);
-                m_templateItems.append(e);
-            };
-            sring( H - T * 0.5,  H - T * 0.5, QColor(80,  110, 220));
-            sring(-H + T * 0.5, -(H - T * 0.5), QColor(220,  80,  80));
-        } else {  // Skills: single robot at Red corner (top-left in scene)
-            double cx = -H + T * 0.5;
-            double cy = -H + T * 0.5;
-            auto* e = addEllipse(cx - T * 0.38, cy - T * 0.38, T * 0.76, T * 0.76,
-                                 QPen(QColor(255, 200, 0), 2, Qt::DashLine), QBrush(Qt::NoBrush));
-            e->setZValue(4);
-            m_templateItems.append(e);
-            auto* txt = addSimpleText("START");
-            txt->setBrush(QColor(255, 200, 0));
-            txt->setPos(cx - 20, cy - 8);
-            txt->setZValue(5);
-            m_templateItems.append(txt);
-        }
         return;
-    }
-
-    // ── VEX Over Under (2023-24) ─────────────────────────────────────────────
-
-    // Red side: field y < 0 → scene y > 0 → rect top-left (−H, 0), size (SIZE, H)
-    zone(-H, 0, Field::SIZE_CM, H, QColor(200, 50, 50));
-    // Blue side: field y > 0 → scene y < 0 → rect top-left (−H, −H), size (SIZE, H)
-    zone(-H, -H, Field::SIZE_CM, H, QColor(50, 90, 210));
-
-    // Offensive zones (2×1 tile strips near the center, opposite diagonal)
-    // Red offensive (bottom-right of centre): field x∈[0,2T], y∈[−T,0]
-    //   → scene x∈[0,2T], y∈[0,T]   → rect(0, 0, 2T, T)
-    zone(0,    0,   T * 2, T, QColor(200, 50, 50),  0.35);
-    // Blue offensive (top-left of centre): field x∈[−2T,0], y∈[0,T]
-    //   → scene x∈[−2T,0], y∈[−T,0] → rect(−2T, −T, 2T, T)
-    zone(-T * 2, -T, T * 2, T, QColor(50, 90, 210), 0.35);
-
-    // Match-load zones (1×1 tile, scene):
-    // Red load – field bottom-left tile: x∈[−H,−H+T], y∈[−H,−H+T] → scene y∈[H−T,H]
-    zone(-H, H - T, T, T, QColor(200, 50, 50),  0.50);
-    // Blue load – field top-right tile: x∈[H−T,H], y∈[H−T,H] → scene y∈[−H,−H+T]
-    zone(H - T, -H, T, T, QColor(50, 90, 210), 0.50);
-
-    // Center barrier (full-width horizontal strip at y=0 in scene)
-    {
-        auto* bar = addRect(-H, -5, Field::SIZE_CM, 10,
-                            QPen(Qt::NoPen), QBrush(QColor(160, 160, 160, 210)));
-        bar->setZValue(2);
-        m_templateItems.append(bar);
-    }
-
-    // Autonomous line (vertical, at x=0)
-    {
-        QPen lp(QColor(255, 255, 255, 70), 1.5, Qt::DashLine);
-        lp.setCosmetic(true);
-        auto* l = addLine(0, -H, 0, H, lp);
-        l->setZValue(2);
-        m_templateItems.append(l);
-    }
-
-    // Goals (2 large cylinders, one per half, offset from center barrier)
-    dot( T,      -T * 0.65, 14, QColor(200, 50, 50,  150), QColor(150, 30, 30));
-    dot(-T,       T * 0.65, 14, QColor(50, 90, 210, 150), QColor(30, 60, 170));
-
-    // Triball starting positions (small filled circles)
-    // Red side (~3 positions)
-    dot(-T * 1.5, -T * 0.5, 7, QColor(220, 60, 60, 180),  QColor(160, 30, 30));
-    dot(-T * 0.5, -T * 0.5, 7, QColor(220, 60, 60, 180),  QColor(160, 30, 30));
-    dot( T * 0.5, -T * 1.5, 7, QColor(220, 60, 60, 180),  QColor(160, 30, 30));
-    // Blue side
-    dot( T * 1.5,  T * 0.5, 7, QColor(60, 100, 220, 180), QColor(30, 60, 170));
-    dot( T * 0.5,  T * 0.5, 7, QColor(60, 100, 220, 180), QColor(30, 60, 170));
-    dot(-T * 0.5,  T * 1.5, 7, QColor(60, 100, 220, 180), QColor(30, 60, 170));
-
-    // Robot starting positions
-    if (type == 1) {
-        // Match – 2 robots per alliance (bottom row = red, top row = blue)
-        for (double sign : {-1.0, 1.0}) {
-            // Alliance two tiles from the corner
-            double fx1 = -H + T * 0.5, fy1 = sign * (H - T * 0.5);
-            double fx2 = -H + T * 1.5, fy2 = sign * (H - T * 0.5);
-            QColor c = (sign < 0) ? QColor(220, 80, 80) : QColor(80, 110, 220);
-            auto ring = [&](double fx, double fy) {
-                double sx = fx, sy = -fy;
-                auto* e = addEllipse(sx - T * 0.38, sy - T * 0.38, T * 0.76, T * 0.76,
-                                     QPen(c, 2, Qt::DashLine), QBrush(Qt::NoBrush));
-                e->setZValue(4);
-                m_templateItems.append(e);
-            };
-            ring(fx1, fy1);
-            ring(fx2, fy2);
-        }
-    } else {
-        // Skills – single robot, starts at red match-load zone corner tile
-        double cx = -H + T * 0.5, cy = -(H - T * 0.5);  // scene coords
-        auto* e = addEllipse(cx - T * 0.38, cy - T * 0.38, T * 0.76, T * 0.76,
-                             QPen(QColor(255, 200, 0), 2, Qt::DashLine), QBrush(Qt::NoBrush));
-        e->setZValue(4);
-        m_templateItems.append(e);
-        auto* t = addSimpleText("START");
-        t->setBrush(QColor(255, 200, 0));
-        t->setPos(cx - 20, cy - 8);
-        t->setZValue(5);
-        m_templateItems.append(t);
     }
 }
 

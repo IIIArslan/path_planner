@@ -87,9 +87,6 @@ void MainWindow::buildMenuBar() {
     field->addAction("Override — Match",    this, [this]() { m_scene->applyFieldTemplate(3); });
     field->addAction("Override — Skills",   this, [this]() { m_scene->applyFieldTemplate(4); });
     field->addSeparator();
-    field->addAction("Over Under — Match",  this, [this]() { m_scene->applyFieldTemplate(1); });
-    field->addAction("Over Under — Skills", this, [this]() { m_scene->applyFieldTemplate(2); });
-    field->addSeparator();
     field->addAction("Clear Field Template", this, [this]() { m_scene->applyFieldTemplate(0); });
     field->addSeparator();
     auto* loadImg = field->addAction("Load Custom Field Image...");
