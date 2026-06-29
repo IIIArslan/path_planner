@@ -41,107 +41,130 @@ RobotPanel::RobotPanel(Project* project, FieldScene* scene, QWidget* parent)
     root->setContentsMargins(10, 10, 10, 10);
     root->setSpacing(6);
 
-    // Header
-    auto* hdr = new QHBoxLayout;
-    auto* title = new QLabel("ROBOT", this);
-    title->setStyleSheet("color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;");
-    hdr->addWidget(title);
-    hdr->addStretch();
-    m_visCheck = new QCheckBox("Show", this);
-    m_visCheck->setChecked(true);
-    m_visCheck->setStyleSheet(
-        "QCheckBox { color:#6a6b70; font-size:11px; }"
-        "QCheckBox::indicator { width:13px; height:13px; }"
-    );
-    hdr->addWidget(m_visCheck);
-    root->addLayout(hdr);
+    // ── Tab toggle row ───────────────────────────────────────────────────────
+    auto* tabRow = new QHBoxLayout;
+    tabRow->setSpacing(4);
+    m_robotTabBtn = new QPushButton("Robot", this);
+    m_velTabBtn   = new QPushButton("Velocity", this);
+    tabRow->addWidget(m_robotTabBtn);
+    tabRow->addWidget(m_velTabBtn);
+    root->addLayout(tabRow);
 
-    // X / Y
-    auto* xyRow = new QHBoxLayout;
-    xyRow->setSpacing(5);
-    xyRow->addWidget(lbl("X:", this));
-    m_xSpin = makeSpin(-Field::HALF_CM, Field::HALF_CM, m_project->robotConfig.startX, " cm", this);
-    m_xSpin->setFixedWidth(82);
-    xyRow->addWidget(m_xSpin);
-    xyRow->addWidget(lbl("Y:", this));
-    m_ySpin = makeSpin(-Field::HALF_CM, Field::HALF_CM, m_project->robotConfig.startY, " cm", this);
-    m_ySpin->setFixedWidth(82);
-    xyRow->addWidget(m_ySpin);
-    root->addLayout(xyRow);
+    // ── Stacked pages ────────────────────────────────────────────────────────
+    m_stack = new QStackedWidget(this);
+    root->addWidget(m_stack);
+    root->addStretch();
 
-    // Heading
-    auto* hdgRow = new QHBoxLayout;
-    hdgRow->setSpacing(5);
-    hdgRow->addWidget(lbl("Heading:", this));
-    m_hdgSpin = makeSpin(0.0, 359.9, m_project->robotConfig.startHeading, " °", this);
-    m_hdgSpin->setWrapping(true);
-    m_hdgSpin->setFixedWidth(90);
-    hdgRow->addWidget(m_hdgSpin);
-    hdgRow->addStretch();
-    root->addLayout(hdgRow);
+    // ── Page 0: Robot config ─────────────────────────────────────────────────
+    {
+        auto* page = new QWidget;
+        auto* pl   = new QVBoxLayout(page);
+        pl->setContentsMargins(0, 4, 0, 0);
+        pl->setSpacing(6);
 
-    // Width / Height
-    auto* szRow = new QHBoxLayout;
-    szRow->setSpacing(5);
-    szRow->addWidget(lbl("W:", this));
-    m_wSpin = makeSpin(10.0, 100.0, m_project->robotConfig.widthCm, " cm", this);
-    m_wSpin->setFixedWidth(74);
-    szRow->addWidget(m_wSpin);
-    szRow->addWidget(lbl("H:", this));
-    m_hSpin = makeSpin(10.0, 100.0, m_project->robotConfig.heightCm, " cm", this);
-    m_hSpin->setFixedWidth(74);
-    szRow->addWidget(m_hSpin);
-    root->addLayout(szRow);
+        auto* hdr   = new QHBoxLayout;
+        auto* title = new QLabel("ROBOT", page);
+        title->setStyleSheet("color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;");
+        hdr->addWidget(title);
+        hdr->addStretch();
+        m_visCheck = new QCheckBox("Show", page);
+        m_visCheck->setChecked(true);
+        m_visCheck->setStyleSheet(
+            "QCheckBox { color:#6a6b70; font-size:11px; }"
+            "QCheckBox::indicator { width:13px; height:13px; }"
+        );
+        hdr->addWidget(m_visCheck);
+        pl->addLayout(hdr);
 
-    // ── Velocity profile section ────────────────────────────────────────────
-    auto* velSep = new QFrame(this);
-    velSep->setFrameShape(QFrame::HLine);
-    velSep->setStyleSheet("color:#252630;");
-    root->addWidget(velSep);
+        auto* xyRow = new QHBoxLayout;
+        xyRow->setSpacing(5);
+        xyRow->addWidget(lbl("X:", page));
+        m_xSpin = makeSpin(-Field::HALF_CM, Field::HALF_CM, m_project->robotConfig.startX, " cm", page);
+        m_xSpin->setFixedWidth(82);
+        xyRow->addWidget(m_xSpin);
+        xyRow->addWidget(lbl("Y:", page));
+        m_ySpin = makeSpin(-Field::HALF_CM, Field::HALF_CM, m_project->robotConfig.startY, " cm", page);
+        m_ySpin->setFixedWidth(82);
+        xyRow->addWidget(m_ySpin);
+        pl->addLayout(xyRow);
 
-    auto* velHdr = new QLabel("VELOCITY PROFILE", this);
-    velHdr->setStyleSheet("color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;");
-    root->addWidget(velHdr);
+        auto* hdgRow = new QHBoxLayout;
+        hdgRow->setSpacing(5);
+        hdgRow->addWidget(lbl("Heading:", page));
+        m_hdgSpin = makeSpin(0.0, 359.9, m_project->robotConfig.startHeading, " °", page);
+        m_hdgSpin->setWrapping(true);
+        m_hdgSpin->setFixedWidth(90);
+        hdgRow->addWidget(m_hdgSpin);
+        hdgRow->addStretch();
+        pl->addLayout(hdgRow);
 
-    // k_curve | v_min
-    auto* vRow1 = new QHBoxLayout;
-    vRow1->setSpacing(5);
-    vRow1->addWidget(lbl("k:", this));
-    m_kCurveSpin = makeSpin(0.1, 200.0, m_project->robotConfig.kCurve, "", this, 1);
-    m_kCurveSpin->setFixedWidth(66);
-    vRow1->addWidget(m_kCurveSpin);
-    vRow1->addWidget(lbl("v_min:", this));
-    m_vMinSpin = makeSpin(0.0, 0.99, m_project->robotConfig.vMin, "", this, 2);
-    m_vMinSpin->setFixedWidth(58);
-    vRow1->addWidget(m_vMinSpin);
-    vRow1->addStretch();
-    root->addLayout(vRow1);
+        auto* szRow = new QHBoxLayout;
+        szRow->setSpacing(5);
+        szRow->addWidget(lbl("W:", page));
+        m_wSpin = makeSpin(10.0, 100.0, m_project->robotConfig.widthCm, " cm", page);
+        m_wSpin->setFixedWidth(74);
+        szRow->addWidget(m_wSpin);
+        szRow->addWidget(lbl("H:", page));
+        m_hSpin = makeSpin(10.0, 100.0, m_project->robotConfig.heightCm, " cm", page);
+        m_hSpin->setFixedWidth(74);
+        szRow->addWidget(m_hSpin);
+        pl->addLayout(szRow);
 
-    // accel | ahead
-    auto* vRow2 = new QHBoxLayout;
-    vRow2->setSpacing(5);
-    vRow2->addWidget(lbl("accel:", this));
-    m_aMaxSpin = makeSpin(0.001, 0.5, m_project->robotConfig.aMax, "", this, 3);
-    m_aMaxSpin->setFixedWidth(62);
-    vRow2->addWidget(m_aMaxSpin);
-    vRow2->addWidget(lbl("ahead:", this));
-    m_lookAheadSpin = makeSpin(1.0, 200.0, m_project->robotConfig.lookAheadCm, " cm", this, 0);
-    m_lookAheadSpin->setFixedWidth(66);
-    vRow2->addWidget(m_lookAheadSpin);
-    vRow2->addStretch();
-    root->addLayout(vRow2);
+        pl->addStretch();
+        m_stack->addWidget(page);  // index 0
+    }
 
-    // v_end
-    auto* vRow3 = new QHBoxLayout;
-    vRow3->setSpacing(5);
-    vRow3->addWidget(lbl("v_end:", this));
-    m_vEndSpin = makeSpin(0.0, 1.0, m_project->robotConfig.vEnd, "", this, 2);
-    m_vEndSpin->setFixedWidth(66);
-    vRow3->addWidget(m_vEndSpin);
-    vRow3->addStretch();
-    root->addLayout(vRow3);
+    // ── Page 1: Velocity profile ──────────────────────────────────────────────
+    {
+        auto* page = new QWidget;
+        auto* pl   = new QVBoxLayout(page);
+        pl->setContentsMargins(0, 4, 0, 0);
+        pl->setSpacing(6);
 
-    // Spinboxes → scene
+        auto* velHdr = new QLabel("VELOCITY PROFILE", page);
+        velHdr->setStyleSheet("color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;");
+        pl->addWidget(velHdr);
+
+        auto* vRow1 = new QHBoxLayout;
+        vRow1->setSpacing(5);
+        vRow1->addWidget(lbl("k:", page));
+        m_kCurveSpin = makeSpin(0.1, 200.0, m_project->robotConfig.kCurve, "", page, 1);
+        m_kCurveSpin->setFixedWidth(66);
+        vRow1->addWidget(m_kCurveSpin);
+        vRow1->addWidget(lbl("v_min:", page));
+        m_vMinSpin = makeSpin(0.0, 0.99, m_project->robotConfig.vMin, "", page, 2);
+        m_vMinSpin->setFixedWidth(58);
+        vRow1->addWidget(m_vMinSpin);
+        vRow1->addStretch();
+        pl->addLayout(vRow1);
+
+        auto* vRow2 = new QHBoxLayout;
+        vRow2->setSpacing(5);
+        vRow2->addWidget(lbl("accel:", page));
+        m_aMaxSpin = makeSpin(0.001, 0.05, m_project->robotConfig.aMax, "", page, 3);
+        m_aMaxSpin->setFixedWidth(62);
+        vRow2->addWidget(m_aMaxSpin);
+        vRow2->addWidget(lbl("ahead:", page));
+        m_lookAheadSpin = makeSpin(1.0, 200.0, m_project->robotConfig.lookAheadCm, " cm", page, 0);
+        m_lookAheadSpin->setFixedWidth(66);
+        vRow2->addWidget(m_lookAheadSpin);
+        vRow2->addStretch();
+        pl->addLayout(vRow2);
+
+        auto* vRow3 = new QHBoxLayout;
+        vRow3->setSpacing(5);
+        vRow3->addWidget(lbl("v_end:", page));
+        m_vEndSpin = makeSpin(0.0, 1.0, m_project->robotConfig.vEnd, "", page, 2);
+        m_vEndSpin->setFixedWidth(66);
+        vRow3->addWidget(m_vEndSpin);
+        vRow3->addStretch();
+        pl->addLayout(vRow3);
+
+        pl->addStretch();
+        m_stack->addWidget(page);  // index 1
+    }
+
+    // ── Connections ───────────────────────────────────────────────────────────
     auto push = [this](double) { pushToScene(); };
     connect(m_xSpin,         &QDoubleSpinBox::valueChanged, this, push);
     connect(m_ySpin,         &QDoubleSpinBox::valueChanged, this, push);
@@ -154,11 +177,16 @@ RobotPanel::RobotPanel(Project* project, FieldScene* scene, QWidget* parent)
     connect(m_lookAheadSpin, &QDoubleSpinBox::valueChanged, this, push);
     connect(m_vEndSpin,      &QDoubleSpinBox::valueChanged, this, push);
 
-    connect(m_visCheck, &QCheckBox::toggled, m_scene, &FieldScene::setRobotVisible);
-    connect(m_scene,    &FieldScene::robotMoved, this, &RobotPanel::onRobotMoved);
+    connect(m_visCheck,    &QCheckBox::toggled,     m_scene, &FieldScene::setRobotVisible);
+    connect(m_scene,       &FieldScene::robotMoved, this,    &RobotPanel::onRobotMoved);
+    connect(m_robotTabBtn, &QPushButton::clicked,   [this]() { setTab(0); });
+    connect(m_velTabBtn,   &QPushButton::clicked,   [this]() { setTab(1); });
+
+    setTab(0);
 }
 
 void RobotPanel::refreshTheme(bool dark) {
+    m_isDark = dark;
     setStyleSheet(dark ? "background:#1a1b1e;" : "background:#f0f1f4;");
 
     const char* spinSS = dark
@@ -194,6 +222,8 @@ void RobotPanel::refreshTheme(bool dark) {
           "QCheckBox::indicator { width:13px; height:13px; }"
         : "QCheckBox { color:#4a4b50; font-size:11px; }"
           "QCheckBox::indicator { width:13px; height:13px; }");
+
+    setTab(m_stack->currentIndex());
 }
 
 void RobotPanel::setProject(Project* p) {
@@ -237,4 +267,29 @@ void RobotPanel::pushToScene() {
     cfg.vEnd         = m_vEndSpin->value();
     m_project->robotConfig = cfg;
     m_scene->applyRobotConfig(cfg);
+}
+
+void RobotPanel::setTab(int idx) {
+    m_stack->setCurrentIndex(idx);
+
+    QString activeSS = m_isDark
+        ? "QPushButton { background:#1a3a5a; color:#6ab0e8;"
+          " border:1px solid #2a5a8a; border-radius:4px;"
+          " padding:3px 0; font-size:11px; font-weight:600; }"
+        : "QPushButton { background:#1a6abf; color:#ffffff;"
+          " border:1px solid #1055a0; border-radius:4px;"
+          " padding:3px 0; font-size:11px; font-weight:600; }";
+
+    QString inactiveSS = m_isDark
+        ? "QPushButton { background:#242528; color:#6a6b70;"
+          " border:1px solid #35363b; border-radius:4px;"
+          " padding:3px 0; font-size:11px; }"
+          "QPushButton:hover { background:#2e2f34; color:#a0a1a6; }"
+        : "QPushButton { background:#e2e3e7; color:#5a5b60;"
+          " border:1px solid #c0c1c5; border-radius:4px;"
+          " padding:3px 0; font-size:11px; }"
+          "QPushButton:hover { background:#d4d5d9; }";
+
+    m_robotTabBtn->setStyleSheet(idx == 0 ? activeSS : inactiveSS);
+    m_velTabBtn->setStyleSheet(idx == 1 ? activeSS : inactiveSS);
 }

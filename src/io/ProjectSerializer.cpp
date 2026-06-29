@@ -86,7 +86,7 @@ bool ProjectSerializer::fromJson(const QByteArray& data, Project& out) {
     out.robotConfig.startHeading = robot["heading"].toDouble(0.0);
     out.robotConfig.kCurve       = robot["kCurve"].toDouble(25.0);
     out.robotConfig.vMin         = robot["vMin"].toDouble(0.15);
-    out.robotConfig.aMax         = robot["aMax"].toDouble(0.025);
+    out.robotConfig.aMax         = robot["aMax"].toDouble(0.005);
     out.robotConfig.lookAheadCm  = robot["lookAhead"].toDouble(20.0);
     out.robotConfig.vEnd         = robot["vEnd"].toDouble(0.0);
 

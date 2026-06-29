@@ -2,6 +2,8 @@
 #include <QWidget>
 #include <QDoubleSpinBox>
 #include <QCheckBox>
+#include <QPushButton>
+#include <QStackedWidget>
 #include "core/Project.h"
 #include "ui/FieldScene.h"
 
@@ -16,9 +18,15 @@ public:
 private:
     void onRobotMoved(double x, double y, double heading);
     void pushToScene();
+    void setTab(int idx);
 
     Project*    m_project;
     FieldScene* m_scene;
+    bool        m_isDark = true;
+
+    QPushButton*    m_robotTabBtn  = nullptr;
+    QPushButton*    m_velTabBtn    = nullptr;
+    QStackedWidget* m_stack        = nullptr;
 
     QCheckBox*      m_visCheck     = nullptr;
     QDoubleSpinBox* m_xSpin        = nullptr;
