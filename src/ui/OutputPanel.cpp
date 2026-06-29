@@ -294,7 +294,7 @@ void OutputPanel::generate() {
     }
 
     double stepCm = m_stepSpin->value();
-    auto   out    = PythonExporter::generate(m_project->paths[idx], stepCm, selectedFormat(), m_project->robotConfig);
+    auto   out    = PythonExporter::generate(m_project->paths[idx], stepCm, selectedFormat());
 
     m_wpText->setPlainText(out.waypointCode);
     m_hdText->setPlainText(out.headingCode);
@@ -320,7 +320,7 @@ void OutputPanel::generateAll() {
 
     for (const auto& path : m_project->paths) {
         if (path.isEmpty()) continue;
-        auto out = PythonExporter::generate(path, stepCm, selectedFormat(), m_project->robotConfig);
+        auto out = PythonExporter::generate(path, stepCm, selectedFormat());
         wpAll += out.waypointCode + "\n\n";
         hdAll += out.headingCode  + "\n\n";
         totalPoints += out.pointCount;

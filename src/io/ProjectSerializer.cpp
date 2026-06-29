@@ -35,17 +35,12 @@ QByteArray ProjectSerializer::toJson(const Project& p) {
     root["step"] = p.stepSizeCm;
 
     QJsonObject robot;
-    robot["w"]        = p.robotConfig.widthCm;
-    robot["h"]        = p.robotConfig.heightCm;
-    robot["x"]        = p.robotConfig.startX;
-    robot["y"]        = p.robotConfig.startY;
-    robot["heading"]  = p.robotConfig.startHeading;
-    robot["kCurve"]   = p.robotConfig.kCurve;
-    robot["vMin"]     = p.robotConfig.vMin;
-    robot["aMax"]     = p.robotConfig.aMax;
-    robot["lookAhead"]= p.robotConfig.lookAheadCm;
-    robot["vEnd"]     = p.robotConfig.vEnd;
-    root["robot"]     = robot;
+    robot["w"]       = p.robotConfig.widthCm;
+    robot["h"]       = p.robotConfig.heightCm;
+    robot["x"]       = p.robotConfig.startX;
+    robot["y"]       = p.robotConfig.startY;
+    robot["heading"] = p.robotConfig.startHeading;
+    root["robot"]    = robot;
 
     QJsonArray paths;
     for (const auto& path : p.paths) {
@@ -78,17 +73,12 @@ bool ProjectSerializer::fromJson(const QByteArray& data, Project& out) {
     out.name       = root["name"].toString("Untitled Project").toStdString();
     out.stepSizeCm = root["step"].toDouble(2.0);
 
-    auto robot                   = root["robot"].toObject();
+    auto robot               = root["robot"].toObject();
     out.robotConfig.widthCm      = robot["w"].toDouble(38.0);
     out.robotConfig.heightCm     = robot["h"].toDouble(38.0);
     out.robotConfig.startX       = robot["x"].toDouble(0.0);
     out.robotConfig.startY       = robot["y"].toDouble(0.0);
     out.robotConfig.startHeading = robot["heading"].toDouble(0.0);
-    out.robotConfig.kCurve       = robot["kCurve"].toDouble(25.0);
-    out.robotConfig.vMin         = robot["vMin"].toDouble(0.15);
-    out.robotConfig.aMax         = robot["aMax"].toDouble(0.005);
-    out.robotConfig.lookAheadCm  = robot["lookAhead"].toDouble(20.0);
-    out.robotConfig.vEnd         = robot["vEnd"].toDouble(0.0);
 
     out.paths.clear();
     for (const auto& pv : root["paths"].toArray()) {
