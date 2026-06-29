@@ -5,6 +5,7 @@
 #include <QList>
 #include <QLabel>
 #include <QDoubleSpinBox>
+#include <QPushButton>
 #include "core/Project.h"
 #include "ui/FieldScene.h"
 
@@ -42,7 +43,7 @@ private:
     Project*    m_project;
     FieldScene* m_scene;
 
-    QVBoxLayout* m_rowLayout  = nullptr;
+    QVBoxLayout* m_rowLayout   = nullptr;
     QList<QFrame*> m_rows;
     QLabel*         m_infoLabel  = nullptr;
     QWidget*        m_posWidget  = nullptr;
@@ -50,5 +51,11 @@ private:
     QDoubleSpinBox* m_startYSpin = nullptr;
     QDoubleSpinBox* m_endXSpin   = nullptr;
     QDoubleSpinBox* m_endYSpin   = nullptr;
-    int          m_selectedIdx = -1;
+    int             m_selectedIdx = -1;
+
+    bool         m_isDark      = true;
+    QLabel*      m_headerLabel = nullptr;
+    QPushButton* m_addBtn      = nullptr;
+    QFrame*      m_sepLine     = nullptr;
+    QWidget*     m_infoBar     = nullptr;
 };

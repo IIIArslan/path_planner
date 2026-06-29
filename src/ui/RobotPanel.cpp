@@ -106,7 +106,40 @@ RobotPanel::RobotPanel(Project* project, FieldScene* scene, QWidget* parent)
 }
 
 void RobotPanel::refreshTheme(bool dark) {
-    setStyleSheet(dark ? "background:#1a1b1e;" : "");
+    setStyleSheet(dark ? "background:#1a1b1e;" : "background:#f0f1f4;");
+
+    const char* spinSS = dark
+        ? "QDoubleSpinBox {"
+          "  background:#242528; color:#c0c1c6;"
+          "  border:1px solid #35363b; border-radius:4px;"
+          "  padding:2px 4px; font-size:11px;"
+          "}"
+          "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:14px; }"
+        : "QDoubleSpinBox {"
+          "  background:#ffffff; color:#1a1b1e;"
+          "  border:1px solid #c0c1c5; border-radius:4px;"
+          "  padding:2px 4px; font-size:11px;"
+          "}"
+          "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:14px; }";
+    for (auto* s : findChildren<QDoubleSpinBox*>())
+        s->setStyleSheet(spinSS);
+
+    for (auto* l : findChildren<QLabel*>()) {
+        if (l->text() == "ROBOT")
+            l->setStyleSheet(dark
+                ? "color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;"
+                : "color:#8a8b90; font-weight:700; font-size:10px; letter-spacing:1px;");
+        else
+            l->setStyleSheet(dark
+                ? "color:#6a6b70; font-size:11px;"
+                : "color:#4a4b50; font-size:11px;");
+    }
+
+    m_visCheck->setStyleSheet(dark
+        ? "QCheckBox { color:#6a6b70; font-size:11px; }"
+          "QCheckBox::indicator { width:13px; height:13px; }"
+        : "QCheckBox { color:#4a4b50; font-size:11px; }"
+          "QCheckBox::indicator { width:13px; height:13px; }");
 }
 
 void RobotPanel::setProject(Project* p) {

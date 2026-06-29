@@ -33,9 +33,23 @@ static const char* ICON_BTN_STYLE =
     "}"
     "QPushButton:hover { color:#c8c9cd; }";
 
+static const char* ICON_BTN_STYLE_LIGHT =
+    "QPushButton {"
+    "  background:transparent; color:#909095;"
+    "  border:none; font-size:14px; padding:0 4px;"
+    "}"
+    "QPushButton:hover { color:#1a1b1e; }";
+
 static const char* DELETE_BTN_STYLE =
     "QPushButton {"
     "  background:transparent; color:#505258;"
+    "  border:none; font-size:14px; padding:0 4px;"
+    "}"
+    "QPushButton:hover { color:#e05555; }";
+
+static const char* DELETE_BTN_STYLE_LIGHT =
+    "QPushButton {"
+    "  background:transparent; color:#909095;"
     "  border:none; font-size:14px; padding:0 4px;"
     "}"
     "QPushButton:hover { color:#e05555; }";
@@ -47,6 +61,16 @@ static const char* NAME_EDIT_STYLE =
     "}"
     "QLineEdit:focus {"
     "  background:#242528; border:1px solid #44454a; border-radius:3px;"
+    "  padding:0 4px;"
+    "}";
+
+static const char* NAME_EDIT_STYLE_LIGHT =
+    "QLineEdit {"
+    "  background:transparent; border:none;"
+    "  color:#1a1b1e; font-size:12px; padding:0 2px;"
+    "}"
+    "QLineEdit:focus {"
+    "  background:#ffffff; border:1px solid #c0c1c5; border-radius:3px;"
     "  padding:0 4px;"
     "}";
 
@@ -65,14 +89,14 @@ PathListPanel::PathListPanel(Project* project, FieldScene* scene, QWidget* paren
     outerLayout->setSpacing(0);
 
     // ── Header ─────────────────────────────────────────────────────────────
-    auto* header = new QLabel("PATHS", this);
-    header->setContentsMargins(14, 14, 14, 8);
-    header->setStyleSheet("color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;");
-    outerLayout->addWidget(header);
+    m_headerLabel = new QLabel("PATHS", this);
+    m_headerLabel->setContentsMargins(14, 14, 14, 8);
+    m_headerLabel->setStyleSheet("color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;");
+    outerLayout->addWidget(m_headerLabel);
 
     // ── "+" button ─────────────────────────────────────────────────────────
-    auto* addBtn = new QPushButton("+ New Path", this);
-    addBtn->setStyleSheet(
+    m_addBtn = new QPushButton("+ New Path", this);
+    m_addBtn->setStyleSheet(
         "QPushButton {"
         "  background:#242528; color:#a0a1a6;"
         "  border:1px solid #35363b; border-radius:5px;"
@@ -81,14 +105,14 @@ PathListPanel::PathListPanel(Project* project, FieldScene* scene, QWidget* paren
         "QPushButton:hover { background:#2e2f34; color:#d0d1d6; }"
         "QPushButton:pressed { background:#3a3b40; }"
     );
-    connect(addBtn, &QPushButton::clicked, m_scene, &FieldScene::startNewPath);
-    outerLayout->addWidget(addBtn);
+    connect(m_addBtn, &QPushButton::clicked, m_scene, &FieldScene::startNewPath);
+    outerLayout->addWidget(m_addBtn);
 
     // ── Separator ──────────────────────────────────────────────────────────
-    auto* sep = new QFrame(this);
-    sep->setFrameShape(QFrame::HLine);
-    sep->setStyleSheet("color:#252630;");
-    outerLayout->addWidget(sep);
+    m_sepLine = new QFrame(this);
+    m_sepLine->setFrameShape(QFrame::HLine);
+    m_sepLine->setStyleSheet("color:#252630;");
+    outerLayout->addWidget(m_sepLine);
 
     // ── Scrollable row list ────────────────────────────────────────────────
     auto* scrollContainer = new QWidget(this);
@@ -106,7 +130,8 @@ PathListPanel::PathListPanel(Project* project, FieldScene* scene, QWidget* paren
     outerLayout->addWidget(scroll, 1);
 
     // ── Info bar at the bottom ──────────────────────────────────────────────
-    auto* infoBar = new QWidget(this);
+    m_infoBar = new QWidget(this);
+    auto* infoBar = m_infoBar;
     infoBar->setStyleSheet("background:#14151a; border-top:1px solid #252630;");
     auto* infoLayout = new QVBoxLayout(infoBar);
     infoLayout->setContentsMargins(10, 6, 10, 6);
@@ -181,10 +206,64 @@ PathListPanel::PathListPanel(Project* project, FieldScene* scene, QWidget* paren
 // ── public API ─────────────────────────────────────────────────────────────
 
 void PathListPanel::refreshTheme(bool dark) {
-    setStyleSheet(dark ? "background:#1a1b1e;" : "");
-    // Info bar background
-    if (auto* bar = m_infoLabel ? m_infoLabel->parentWidget() : nullptr)
-        bar->setStyleSheet(dark ? "background:#14151a; border-top:1px solid #252630;" : "");
+    m_isDark = dark;
+
+    setStyleSheet(dark ? "background:#1a1b1e;" : "background:#f0f1f4;");
+
+    m_headerLabel->setStyleSheet(dark
+        ? "color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;"
+        : "color:#8a8b90; font-weight:700; font-size:10px; letter-spacing:1px;");
+
+    m_addBtn->setStyleSheet(dark
+        ? "QPushButton {"
+          "  background:#242528; color:#a0a1a6;"
+          "  border:1px solid #35363b; border-radius:5px;"
+          "  padding:7px 12px; margin:0 10px 10px 10px; font-size:12px;"
+          "}"
+          "QPushButton:hover { background:#2e2f34; color:#d0d1d6; }"
+          "QPushButton:pressed { background:#3a3b40; }"
+        : "QPushButton {"
+          "  background:#e2e3e7; color:#5a5b60;"
+          "  border:1px solid #d0d1d5; border-radius:5px;"
+          "  padding:7px 12px; margin:0 10px 10px 10px; font-size:12px;"
+          "}"
+          "QPushButton:hover { background:#d4d5d9; color:#1a1b1e; }"
+          "QPushButton:pressed { background:#c8c9cd; }");
+
+    m_sepLine->setStyleSheet(dark ? "color:#252630;" : "color:#d0d1d5;");
+
+    m_infoBar->setStyleSheet(dark
+        ? "background:#14151a; border-top:1px solid #252630;"
+        : "background:#e8e9ec; border-top:1px solid #d0d1d5;");
+
+    m_infoLabel->setStyleSheet(dark
+        ? "color:#484850; font-size:10px;"
+        : "color:#8a8b90; font-size:10px;");
+
+    const char* posSS = dark
+        ? "QDoubleSpinBox {"
+          "  background:#242528; color:#c0c1c6;"
+          "  border:1px solid #35363b; border-radius:3px;"
+          "  padding:1px 2px; font-size:10px;"
+          "}"
+          "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:12px; }"
+        : "QDoubleSpinBox {"
+          "  background:#ffffff; color:#1a1b1e;"
+          "  border:1px solid #c0c1c5; border-radius:3px;"
+          "  padding:1px 2px; font-size:10px;"
+          "}"
+          "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:12px; }";
+    for (auto* s : m_posWidget->findChildren<QDoubleSpinBox*>())
+        s->setStyleSheet(posSS);
+
+    for (auto* l : m_posWidget->findChildren<QLabel*>()) {
+        bool isRowLabel = (l->text() == "Start" || l->text() == "End");
+        l->setStyleSheet(QString("color:%1; font-size:10px;%2")
+            .arg(dark ? "#5a5b60" : "#6a6b70")
+            .arg(isRowLabel ? " min-width:26px;" : ""));
+    }
+
+    rebuild();
 }
 
 void PathListPanel::rebuild() {
@@ -245,7 +324,7 @@ void PathListPanel::addRow(int pathIdx) {
 
     // ── Name field ──────────────────────────────────────────────────────────
     auto* nameEdit = new QLineEdit(QString::fromStdString(path.name), row);
-    nameEdit->setStyleSheet(NAME_EDIT_STYLE);
+    nameEdit->setStyleSheet(m_isDark ? NAME_EDIT_STYLE : NAME_EDIT_STYLE_LIGHT);
     nameEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     connect(nameEdit, &QLineEdit::editingFinished, this, [this, pathIdx, nameEdit]() {
         if (pathIdx < static_cast<int>(m_project->paths.size())) {
@@ -261,7 +340,7 @@ void PathListPanel::addRow(int pathIdx) {
 
     // ── Visibility toggle ───────────────────────────────────────────────────
     auto* eyeBtn = new QPushButton(path.visible ? "◉" : "◎", row);
-    eyeBtn->setStyleSheet(ICON_BTN_STYLE);
+    eyeBtn->setStyleSheet(m_isDark ? ICON_BTN_STYLE : ICON_BTN_STYLE_LIGHT);
     eyeBtn->setFixedSize(24, 24);
     eyeBtn->setToolTip("Toggle visibility");
     connect(eyeBtn, &QPushButton::clicked, this, [this, pathIdx, eyeBtn]() {
@@ -276,7 +355,7 @@ void PathListPanel::addRow(int pathIdx) {
 
     // ── Merge button ────────────────────────────────────────────────────────
     auto* mergeBtn = new QPushButton("⊕", row);
-    mergeBtn->setStyleSheet(ICON_BTN_STYLE);
+    mergeBtn->setStyleSheet(m_isDark ? ICON_BTN_STYLE : ICON_BTN_STYLE_LIGHT);
     mergeBtn->setFixedSize(24, 24);
     mergeBtn->setToolTip("Merge with another path");
     connect(mergeBtn, &QPushButton::clicked, this, [this, pathIdx, mergeBtn]() {
@@ -293,7 +372,7 @@ void PathListPanel::addRow(int pathIdx) {
 
     // ── Delete button ───────────────────────────────────────────────────────
     auto* delBtn = new QPushButton("✕", row);
-    delBtn->setStyleSheet(DELETE_BTN_STYLE);
+    delBtn->setStyleSheet(m_isDark ? DELETE_BTN_STYLE : DELETE_BTN_STYLE_LIGHT);
     delBtn->setFixedSize(24, 24);
     delBtn->setToolTip("Delete path");
     connect(delBtn, &QPushButton::clicked, this, [this, pathIdx]() {
@@ -317,14 +396,15 @@ void PathListPanel::clearRows() {
 
 void PathListPanel::applyRowStyle(QFrame* row, bool selected) {
     if (selected) {
-        row->setStyleSheet(
-            "QFrame { background:#22232a; border-left:3px solid #4285f4; }"
-        );
+        row->setStyleSheet(m_isDark
+            ? "QFrame { background:#22232a; border-left:3px solid #4285f4; }"
+            : "QFrame { background:#e4eafd; border-left:3px solid #4285f4; }");
     } else {
-        row->setStyleSheet(
-            "QFrame { background:transparent; border-left:3px solid transparent; }"
-            "QFrame:hover { background:#1f2025; }"
-        );
+        row->setStyleSheet(m_isDark
+            ? "QFrame { background:transparent; border-left:3px solid transparent; }"
+              "QFrame:hover { background:#1f2025; }"
+            : "QFrame { background:transparent; border-left:3px solid transparent; }"
+              "QFrame:hover { background:#e8e9ed; }");
     }
 }
 

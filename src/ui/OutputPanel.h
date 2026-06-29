@@ -34,4 +34,5 @@ private:
     QTextEdit*      m_wpText     = nullptr;
     QTextEdit*      m_hdText     = nullptr;
     QLabel*         m_statusLbl  = nullptr;
+    QPushButton*    m_genBtn     = nullptr;
 };

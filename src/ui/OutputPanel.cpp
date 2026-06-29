@@ -85,10 +85,10 @@ OutputPanel::OutputPanel(Project* project, FieldScene* scene, QWidget* parent)
     );
     ctrlRow->addWidget(m_stepSpin);
 
-    auto* genBtn = new QPushButton("▶  Generate", this);
-    genBtn->setStyleSheet(GEN_BTN_SS);
-    connect(genBtn, &QPushButton::clicked, this, &OutputPanel::generate);
-    ctrlRow->addWidget(genBtn);
+    m_genBtn = new QPushButton("▶  Generate", this);
+    m_genBtn->setStyleSheet(GEN_BTN_SS);
+    connect(m_genBtn, &QPushButton::clicked, this, &OutputPanel::generate);
+    ctrlRow->addWidget(m_genBtn);
 
     m_statusLbl = new QLabel("", this);
     m_statusLbl->setStyleSheet("color:#50515a; font-size:10px; padding-left:8px;");
@@ -147,7 +147,83 @@ OutputPanel::OutputPanel(Project* project, FieldScene* scene, QWidget* parent)
 void OutputPanel::refreshTheme(bool dark) {
     setStyleSheet(dark
         ? "background:#18191c; border-top:1px solid #2a2b30;"
-        : "");
+        : "background:#f0f1f4; border-top:1px solid #d0d1d5;");
+
+    for (auto* te : findChildren<QTextEdit*>())
+        te->setStyleSheet(dark
+            ? "QTextEdit {"
+              "  background:#0f1012; color:#a8d8a8;"
+              "  border:1px solid #2a2b30; border-radius:4px;"
+              "  font-family:monospace; font-size:11px; padding:6px;"
+              "}"
+            : "QTextEdit {"
+              "  background:#f8f9fb; color:#2a5a2a;"
+              "  border:1px solid #d0d1d5; border-radius:4px;"
+              "  font-family:monospace; font-size:11px; padding:6px;"
+              "}");
+
+    m_pathCombo->setStyleSheet(dark
+        ? "QComboBox { background:#242528; color:#c0c1c6; border:1px solid #35363b;"
+          "  border-radius:4px; padding:3px 8px; font-size:11px; min-width:120px; }"
+          "QComboBox::drop-down { border:none; }"
+          "QComboBox QAbstractItemView { background:#242528; color:#c0c1c6; selection-background-color:#35363b; }"
+        : "QComboBox { background:#ffffff; color:#1a1b1e; border:1px solid #c0c1c5;"
+          "  border-radius:4px; padding:3px 8px; font-size:11px; min-width:120px; }"
+          "QComboBox::drop-down { border:none; }"
+          "QComboBox QAbstractItemView { background:#ffffff; color:#1a1b1e; selection-background-color:#e0e1e6; }");
+
+    m_stepSpin->setStyleSheet(dark
+        ? "QDoubleSpinBox { background:#242528; color:#c0c1c6; border:1px solid #35363b;"
+          "  border-radius:4px; padding:3px 6px; font-size:11px; }"
+          "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:16px; }"
+        : "QDoubleSpinBox { background:#ffffff; color:#1a1b1e; border:1px solid #c0c1c5;"
+          "  border-radius:4px; padding:3px 6px; font-size:11px; }"
+          "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:16px; }");
+
+    m_statusLbl->setStyleSheet(dark
+        ? "color:#50515a; font-size:10px; padding-left:8px;"
+        : "color:#8a8b90; font-size:10px; padding-left:8px;");
+
+    for (auto* l : findChildren<QLabel*>()) {
+        if (l == m_statusLbl) continue;
+        const QString txt = l->text();
+        if (txt == "WAYPOINTS" || txt == "HEADINGS")
+            l->setStyleSheet(dark
+                ? "color:#50515a; font-size:10px; font-weight:600; letter-spacing:0.5px;"
+                : "color:#8a8b90; font-size:10px; font-weight:600; letter-spacing:0.5px;");
+        else
+            l->setStyleSheet(dark
+                ? "color:#6a6b70; font-size:11px;"
+                : "color:#4a4b50; font-size:11px;");
+    }
+
+    m_genBtn->setStyleSheet(dark
+        ? "QPushButton { background:#1a3a5a; color:#6ab0e8;"
+          "  border:1px solid #2a5a8a; border-radius:4px;"
+          "  padding:4px 14px; font-size:12px; font-weight:600; }"
+          "QPushButton:hover  { background:#204878; color:#90c8f0; }"
+          "QPushButton:pressed { background:#2a5890; }"
+        : "QPushButton { background:#1a6abf; color:#ffffff;"
+          "  border:1px solid #1055a0; border-radius:4px;"
+          "  padding:4px 14px; font-size:12px; font-weight:600; }"
+          "QPushButton:hover  { background:#1a7ad0; }"
+          "QPushButton:pressed { background:#155aaa; }");
+
+    const char* copyBtnSS = dark
+        ? "QPushButton { background:#242528; color:#8a8b90;"
+          "  border:1px solid #35363b; border-radius:4px;"
+          "  padding:3px 10px; font-size:11px; }"
+          "QPushButton:hover  { background:#2e2f34; color:#c8c9cd; }"
+          "QPushButton:pressed { background:#3a3b40; }"
+        : "QPushButton { background:#e2e3e7; color:#5a5b60;"
+          "  border:1px solid #c0c1c5; border-radius:4px;"
+          "  padding:3px 10px; font-size:11px; }"
+          "QPushButton:hover  { background:#d4d5d9; color:#1a1b1e; }"
+          "QPushButton:pressed { background:#c8c9cd; }";
+    for (auto* btn : findChildren<QPushButton*>()) {
+        if (btn != m_genBtn)
+            btn->setStyleSheet(copyBtnSS);
+    }
 }
 
 void OutputPanel::setProject(Project* p) {
