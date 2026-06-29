@@ -85,6 +85,21 @@ OutputPanel::OutputPanel(Project* project, FieldScene* scene, QWidget* parent)
     );
     ctrlRow->addWidget(m_stepSpin);
 
+    auto* fmtLbl = new QLabel("Format:", this);
+    fmtLbl->setStyleSheet("color:#6a6b70; font-size:11px;");
+    ctrlRow->addWidget(fmtLbl);
+
+    m_fmtCombo = new QComboBox(this);
+    m_fmtCombo->addItem("Multiline");
+    m_fmtCombo->addItem("Inline");
+    m_fmtCombo->setStyleSheet(
+        "QComboBox { background:#242528; color:#c0c1c6; border:1px solid #35363b;"
+        "  border-radius:4px; padding:3px 8px; font-size:11px; min-width:90px; }"
+        "QComboBox::drop-down { border:none; }"
+        "QComboBox QAbstractItemView { background:#242528; color:#c0c1c6; selection-background-color:#35363b; }"
+    );
+    ctrlRow->addWidget(m_fmtCombo);
+
     m_genBtn = new QPushButton("▶  Generate", this);
     m_genBtn->setStyleSheet(GEN_BTN_SS);
     connect(m_genBtn, &QPushButton::clicked, this, &OutputPanel::generate);
@@ -162,15 +177,21 @@ void OutputPanel::refreshTheme(bool dark) {
               "  font-family:monospace; font-size:11px; padding:6px;"
               "}");
 
-    m_pathCombo->setStyleSheet(dark
-        ? "QComboBox { background:#242528; color:#c0c1c6; border:1px solid #35363b;"
-          "  border-radius:4px; padding:3px 8px; font-size:11px; min-width:120px; }"
-          "QComboBox::drop-down { border:none; }"
-          "QComboBox QAbstractItemView { background:#242528; color:#c0c1c6; selection-background-color:#35363b; }"
-        : "QComboBox { background:#ffffff; color:#1a1b1e; border:1px solid #c0c1c5;"
-          "  border-radius:4px; padding:3px 8px; font-size:11px; min-width:120px; }"
-          "QComboBox::drop-down { border:none; }"
-          "QComboBox QAbstractItemView { background:#ffffff; color:#1a1b1e; selection-background-color:#e0e1e6; }");
+    auto makeComboSS = [dark](const char* minWidth) -> QString {
+        return dark
+            ? QString("QComboBox { background:#242528; color:#c0c1c6; border:1px solid #35363b;"
+                      "  border-radius:4px; padding:3px 8px; font-size:11px; min-width:%1; }"
+                      "QComboBox::drop-down { border:none; }"
+                      "QComboBox QAbstractItemView { background:#242528; color:#c0c1c6;"
+                      "  selection-background-color:#35363b; }").arg(minWidth)
+            : QString("QComboBox { background:#ffffff; color:#1a1b1e; border:1px solid #c0c1c5;"
+                      "  border-radius:4px; padding:3px 8px; font-size:11px; min-width:%1; }"
+                      "QComboBox::drop-down { border:none; }"
+                      "QComboBox QAbstractItemView { background:#ffffff; color:#1a1b1e;"
+                      "  selection-background-color:#e0e1e6; }").arg(minWidth);
+    };
+    m_pathCombo->setStyleSheet(makeComboSS("120px"));
+    m_fmtCombo->setStyleSheet(makeComboSS("90px"));
 
     m_stepSpin->setStyleSheet(dark
         ? "QDoubleSpinBox { background:#242528; color:#c0c1c6; border:1px solid #35363b;"
@@ -244,6 +265,12 @@ void OutputPanel::refreshPathList() {
 
 // ── private ────────────────────────────────────────────────────────────────
 
+PythonExporter::Format OutputPanel::selectedFormat() const {
+    return m_fmtCombo->currentIndex() == 1
+        ? PythonExporter::Format::Inline
+        : PythonExporter::Format::Multiline;
+}
+
 void OutputPanel::generate() {
     int comboIdx = m_pathCombo->currentIndex();
     if (comboIdx < 0) {
@@ -267,7 +294,7 @@ void OutputPanel::generate() {
     }
 
     double stepCm = m_stepSpin->value();
-    auto   out    = PythonExporter::generate(m_project->paths[idx], stepCm);
+    auto   out    = PythonExporter::generate(m_project->paths[idx], stepCm, selectedFormat());
 
     m_wpText->setPlainText(out.waypointCode);
     m_hdText->setPlainText(out.headingCode);
@@ -293,7 +320,7 @@ void OutputPanel::generateAll() {
 
     for (const auto& path : m_project->paths) {
         if (path.isEmpty()) continue;
-        auto out = PythonExporter::generate(path, stepCm);
+        auto out = PythonExporter::generate(path, stepCm, selectedFormat());
         wpAll += out.waypointCode + "\n\n";
         hdAll += out.headingCode  + "\n\n";
         totalPoints += out.pointCount;

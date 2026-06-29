@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include "core/Project.h"
 #include "ui/FieldScene.h"
+#include "io/PythonExporter.h"
 
 // Bottom panel that generates and displays Python output for a selected path.
 // Two read-only text areas (waypoints and headings) each have a Copy button.
@@ -22,6 +23,7 @@ public:
 private:
     void generate();
     void generateAll();
+    PythonExporter::Format selectedFormat() const;
 
     static QTextEdit*  makeTextArea(QWidget* parent);
     static QPushButton* makeCopyBtn(QTextEdit* target, QWidget* parent);
@@ -30,6 +32,7 @@ private:
     FieldScene* m_scene;
 
     QComboBox*      m_pathCombo  = nullptr;
+    QComboBox*      m_fmtCombo   = nullptr;
     QDoubleSpinBox* m_stepSpin   = nullptr;
     QTextEdit*      m_wpText     = nullptr;
     QTextEdit*      m_hdText     = nullptr;

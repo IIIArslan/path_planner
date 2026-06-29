@@ -11,9 +11,11 @@ struct PythonOutput {
 // Interpolates a Path and formats the result as copy-pasteable Python lists.
 class PythonExporter {
 public:
-    static PythonOutput generate(const Path& path, double stepCm);
+    enum class Format { Multiline, Inline };
+
+    static PythonOutput generate(const Path& path, double stepCm,
+                                 Format fmt = Format::Multiline);
 
 private:
-    // Convert path name → valid Python identifier
     static QString toVarName(const std::string& name);
 };
