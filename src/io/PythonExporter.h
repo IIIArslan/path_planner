@@ -1,5 +1,6 @@
 #pragma once
 #include "core/Path.h"
+#include "core/RobotConfig.h"
 #include <QString>
 
 struct PythonOutput {
@@ -14,7 +15,7 @@ public:
     enum class Format { Multiline, Inline };
 
     static PythonOutput generate(const Path& path, double stepCm,
-                                 Format fmt = Format::Multiline);
+                                 Format fmt, const RobotConfig& cfg);
 
 private:
     static QString toVarName(const std::string& name);

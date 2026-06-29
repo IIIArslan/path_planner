@@ -20,10 +20,17 @@ private:
     Project*    m_project;
     FieldScene* m_scene;
 
-    QCheckBox*      m_visCheck = nullptr;
-    QDoubleSpinBox* m_xSpin    = nullptr;
-    QDoubleSpinBox* m_ySpin    = nullptr;
-    QDoubleSpinBox* m_hdgSpin  = nullptr;
-    QDoubleSpinBox* m_wSpin    = nullptr;
-    QDoubleSpinBox* m_hSpin    = nullptr;
+    QCheckBox*      m_visCheck     = nullptr;
+    QDoubleSpinBox* m_xSpin        = nullptr;
+    QDoubleSpinBox* m_ySpin        = nullptr;
+    QDoubleSpinBox* m_hdgSpin      = nullptr;
+    QDoubleSpinBox* m_wSpin        = nullptr;
+    QDoubleSpinBox* m_hSpin        = nullptr;
+
+    // Velocity profile
+    QDoubleSpinBox* m_kCurveSpin    = nullptr;
+    QDoubleSpinBox* m_vMinSpin      = nullptr;
+    QDoubleSpinBox* m_aMaxSpin      = nullptr;
+    QDoubleSpinBox* m_lookAheadSpin = nullptr;
+    QDoubleSpinBox* m_vEndSpin      = nullptr;
 };

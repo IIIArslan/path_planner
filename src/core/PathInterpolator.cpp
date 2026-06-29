@@ -2,6 +2,10 @@
 #include <algorithm>
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 std::vector<PathInterpolator::TableEntry>
 PathInterpolator::buildGlobalTable(const Path& path, int samplesPerSeg) {
     std::vector<TableEntry> table;
@@ -78,4 +82,61 @@ std::vector<Waypoint> PathInterpolator::interpolate(const Path& path, double ste
     }
 
     return waypoints;
+}
+
+void PathInterpolator::computeVelocities(std::vector<Waypoint>& wps,
+                                          const RobotConfig& cfg)
+{
+    int n = static_cast<int>(wps.size());
+    if (n == 0) return;
+    if (n == 1) { wps[0].velocity = std::clamp(cfg.vEnd, 0.0, 1.0); return; }
+
+    // ── Pairwise distances and curvatures ──────────────────────────────────
+    std::vector<double> dists(n - 1);
+    std::vector<double> kappa(n, 0.0);
+
+    for (int i = 0; i + 1 < n; ++i) {
+        double dx = wps[i+1].x - wps[i].x;
+        double dy = wps[i+1].y - wps[i].y;
+        dists[i]  = std::max(1e-9, std::sqrt(dx*dx + dy*dy));
+
+        double dh = wps[i+1].heading - wps[i].heading;
+        while (dh >  180.0) dh -= 360.0;
+        while (dh < -180.0) dh += 360.0;
+        kappa[i] = std::abs(dh) * (M_PI / 180.0) / dists[i];
+    }
+    kappa[n - 1] = kappa[n - 2];
+
+    // ── Lookahead-window velocity ceiling ──────────────────────────────────
+    // For each point i, look up to lookAheadCm ahead; use worst curvature found.
+    std::vector<double> vCeil(n);
+    for (int i = 0; i < n; ++i) {
+        double kMax    = kappa[i];
+        double cumDist = 0.0;
+        for (int j = i + 1; j < n; ++j) {
+            cumDist += dists[j - 1];
+            if (cumDist > cfg.lookAheadCm) break;
+            kMax = std::max(kMax, kappa[j]);
+        }
+        double v  = 1.0 / (1.0 + cfg.kCurve * kMax);
+        vCeil[i]  = std::clamp(v, cfg.vMin, 1.0);
+    }
+
+    // ── Forward pass: acceleration ramp from rest ───────────────────────────
+    std::vector<double> vel(n);
+    vel[0] = 0.0;
+    for (int i = 1; i < n; ++i) {
+        double vAccel = std::sqrt(vel[i-1] * vel[i-1] + 2.0 * cfg.aMax * dists[i-1]);
+        vel[i] = std::min(vCeil[i], vAccel);
+    }
+
+    // ── Backward pass: deceleration ramp to vEnd ───────────────────────────
+    vel[n - 1] = std::min(vel[n - 1], std::clamp(cfg.vEnd, 0.0, 1.0));
+    for (int i = n - 2; i >= 0; --i) {
+        double vDecel = std::sqrt(vel[i+1] * vel[i+1] + 2.0 * cfg.aMax * dists[i]);
+        vel[i] = std::min(vel[i], vDecel);
+    }
+
+    for (int i = 0; i < n; ++i)
+        wps[i].velocity = std::clamp(vel[i], 0.0, 1.0);
 }

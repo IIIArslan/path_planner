@@ -14,13 +14,13 @@ static const char* SPIN_SS =
     "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button { width:14px; }";
 
 static QDoubleSpinBox* makeSpin(double lo, double hi, double val,
-                                 const QString& sfx, QWidget* p)
+                                 const QString& sfx, QWidget* p, int dec = 1)
 {
     auto* s = new QDoubleSpinBox(p);
     s->setRange(lo, hi);
     s->setValue(val);
     s->setSuffix(sfx);
-    s->setDecimals(1);
+    s->setDecimals(dec);
     s->setStyleSheet(SPIN_SS);
     return s;
 }
@@ -93,13 +93,66 @@ RobotPanel::RobotPanel(Project* project, FieldScene* scene, QWidget* parent)
     szRow->addWidget(m_hSpin);
     root->addLayout(szRow);
 
+    // ── Velocity profile section ────────────────────────────────────────────
+    auto* velSep = new QFrame(this);
+    velSep->setFrameShape(QFrame::HLine);
+    velSep->setStyleSheet("color:#252630;");
+    root->addWidget(velSep);
+
+    auto* velHdr = new QLabel("VELOCITY PROFILE", this);
+    velHdr->setStyleSheet("color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;");
+    root->addWidget(velHdr);
+
+    // k_curve | v_min
+    auto* vRow1 = new QHBoxLayout;
+    vRow1->setSpacing(5);
+    vRow1->addWidget(lbl("k:", this));
+    m_kCurveSpin = makeSpin(0.1, 200.0, m_project->robotConfig.kCurve, "", this, 1);
+    m_kCurveSpin->setFixedWidth(66);
+    vRow1->addWidget(m_kCurveSpin);
+    vRow1->addWidget(lbl("v_min:", this));
+    m_vMinSpin = makeSpin(0.0, 0.99, m_project->robotConfig.vMin, "", this, 2);
+    m_vMinSpin->setFixedWidth(58);
+    vRow1->addWidget(m_vMinSpin);
+    vRow1->addStretch();
+    root->addLayout(vRow1);
+
+    // accel | ahead
+    auto* vRow2 = new QHBoxLayout;
+    vRow2->setSpacing(5);
+    vRow2->addWidget(lbl("accel:", this));
+    m_aMaxSpin = makeSpin(0.001, 0.5, m_project->robotConfig.aMax, "", this, 3);
+    m_aMaxSpin->setFixedWidth(62);
+    vRow2->addWidget(m_aMaxSpin);
+    vRow2->addWidget(lbl("ahead:", this));
+    m_lookAheadSpin = makeSpin(1.0, 200.0, m_project->robotConfig.lookAheadCm, " cm", this, 0);
+    m_lookAheadSpin->setFixedWidth(66);
+    vRow2->addWidget(m_lookAheadSpin);
+    vRow2->addStretch();
+    root->addLayout(vRow2);
+
+    // v_end
+    auto* vRow3 = new QHBoxLayout;
+    vRow3->setSpacing(5);
+    vRow3->addWidget(lbl("v_end:", this));
+    m_vEndSpin = makeSpin(0.0, 1.0, m_project->robotConfig.vEnd, "", this, 2);
+    m_vEndSpin->setFixedWidth(66);
+    vRow3->addWidget(m_vEndSpin);
+    vRow3->addStretch();
+    root->addLayout(vRow3);
+
     // Spinboxes → scene
     auto push = [this](double) { pushToScene(); };
-    connect(m_xSpin,   &QDoubleSpinBox::valueChanged, this, push);
-    connect(m_ySpin,   &QDoubleSpinBox::valueChanged, this, push);
-    connect(m_hdgSpin, &QDoubleSpinBox::valueChanged, this, push);
-    connect(m_wSpin,   &QDoubleSpinBox::valueChanged, this, push);
-    connect(m_hSpin,   &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_xSpin,         &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_ySpin,         &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_hdgSpin,       &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_wSpin,         &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_hSpin,         &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_kCurveSpin,    &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_vMinSpin,      &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_aMaxSpin,      &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_lookAheadSpin, &QDoubleSpinBox::valueChanged, this, push);
+    connect(m_vEndSpin,      &QDoubleSpinBox::valueChanged, this, push);
 
     connect(m_visCheck, &QCheckBox::toggled, m_scene, &FieldScene::setRobotVisible);
     connect(m_scene,    &FieldScene::robotMoved, this, &RobotPanel::onRobotMoved);
@@ -125,7 +178,8 @@ void RobotPanel::refreshTheme(bool dark) {
         s->setStyleSheet(spinSS);
 
     for (auto* l : findChildren<QLabel*>()) {
-        if (l->text() == "ROBOT")
+        const QString txt = l->text();
+        if (txt == "ROBOT" || txt == "VELOCITY PROFILE")
             l->setStyleSheet(dark
                 ? "color:#5a5b60; font-weight:700; font-size:10px; letter-spacing:1px;"
                 : "color:#8a8b90; font-weight:700; font-size:10px; letter-spacing:1px;");
@@ -145,11 +199,18 @@ void RobotPanel::refreshTheme(bool dark) {
 void RobotPanel::setProject(Project* p) {
     m_project = p;
     QSignalBlocker bx(m_xSpin), by(m_ySpin), bh(m_hdgSpin), bw(m_wSpin), bhh(m_hSpin);
+    QSignalBlocker bk(m_kCurveSpin), bvm(m_vMinSpin), bam(m_aMaxSpin),
+                   bla(m_lookAheadSpin), bve(m_vEndSpin);
     m_xSpin->setValue(p->robotConfig.startX);
     m_ySpin->setValue(p->robotConfig.startY);
     m_hdgSpin->setValue(p->robotConfig.startHeading);
     m_wSpin->setValue(p->robotConfig.widthCm);
     m_hSpin->setValue(p->robotConfig.heightCm);
+    m_kCurveSpin->setValue(p->robotConfig.kCurve);
+    m_vMinSpin->setValue(p->robotConfig.vMin);
+    m_aMaxSpin->setValue(p->robotConfig.aMax);
+    m_lookAheadSpin->setValue(p->robotConfig.lookAheadCm);
+    m_vEndSpin->setValue(p->robotConfig.vEnd);
     m_scene->applyRobotConfig(p->robotConfig);
 }
 
@@ -169,6 +230,11 @@ void RobotPanel::pushToScene() {
     cfg.startHeading = m_hdgSpin->value();
     cfg.widthCm      = m_wSpin->value();
     cfg.heightCm     = m_hSpin->value();
+    cfg.kCurve       = m_kCurveSpin->value();
+    cfg.vMin         = m_vMinSpin->value();
+    cfg.aMax         = m_aMaxSpin->value();
+    cfg.lookAheadCm  = m_lookAheadSpin->value();
+    cfg.vEnd         = m_vEndSpin->value();
     m_project->robotConfig = cfg;
     m_scene->applyRobotConfig(cfg);
 }
